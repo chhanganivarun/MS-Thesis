@@ -261,12 +261,12 @@ Table~\ref{table:frame_ablation} studies the effect of the number of video frame
 \subsection{Preliminary Architectures: ViT and Conv3D}
 \label{sec:prelim_arch}
 
-Before the CLIP-MC family, we explored several earlier architectures. Chronologically the lineage is: GTA-V control regression $\rightarrow$ IROS cross-modal ViT (two-class mask) $\rightarrow$ Conv3D/X3D with joint self-attention $\rightarrow$ CLIP-MC. The ViT and Conv3D models share the multi-task mask formulation but use separate visual and language encoders. They were evaluated on an earlier 50-episode validation pool with displacement metrics (Section~\ref{sec:disp_metrics}), not with the 25/34 TC protocol; we therefore report them as a separate preliminary evaluation and do \emph{not} merge them into Tables~\ref{table:task_completion}--\ref{table:frame_ablation}.
+Before the CLIP-MC family, we explored several earlier architectures. Chronologically the lineage is: GTA-V control regression $\rightarrow$ Cross-modal ViT (two-class mask) $\rightarrow$ Conv3D/X3D with joint self-attention $\rightarrow$ CLIP-MC. The ViT and Conv3D models share the multi-task mask formulation but use separate visual and language encoders. They were evaluated on an earlier 50-episode validation pool with displacement metrics (Section~\ref{sec:disp_metrics}), not with the 25/34 TC protocol; we therefore report them as a separate preliminary evaluation and do \emph{not} merge them into Tables~\ref{table:task_completion}--\ref{table:frame_ablation}.
 
 \paragraph{GTA-V control regression.}
 The earliest modelling attempt predicted continuous steering, acceleration, and brake from GTA~V imagery (Chapter~\ref{ch:dataset}). That formulation was abandoned because low-level controls without an explicit spatial goal were brittle and because GTA~V lacked the calibration access needed for dense navigable-region annotation. The move to CARLA and to mask prediction is the starting point of the lineage below.
 
-\paragraph{IROS cross-modal ViT (two-class mask).}
+\paragraph{Cross-modal ViT (two-class mask).}
 The first CARLA architecture used an ImageNet-pretrained Vision Transformer~\cite{dosovitskiy2020image} (patch size $16\times 16$, hidden dimension $C=384$, spatial features $H=W=14$) with 300-dimensional GloVe embeddings~\cite{pennington2014glove} passed through an LSTM (maximum command length 20). Fusion was \emph{pure} cross-modal attention: with visual tokens $f_t\in\mathbb{R}^{HW\times C}$ and linguistic features $h\in\mathbb{R}^{N\times C}$,
 \begin{equation}
 \begin{split}
