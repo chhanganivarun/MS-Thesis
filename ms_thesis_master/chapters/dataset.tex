@@ -12,7 +12,7 @@ Another major limitation is that single-image predictions are devoid of temporal
 
 Most existing works on language-guided navigation make assumptions that limit applicability in real-world outdoor settings. Indoor methods often assume a fully known environment that can be discretized into a graph~\cite{anderson2018vision,kolve2017ai2}. Outdoor methods such as Touchdown~\cite{Chen2019TOUCHDOWN} allow navigation by choosing from a small discrete action set on pre-recorded street views. This discretization limits fine manoeuvres such as ``park between the two cars on the right.''
 
-To address these limitations, we created CARLA-NAV using the CARLA simulator~\cite{dosovitskiy2017carla}. Combined with a visual grounding-based approach, the dataset allows fine-grained control over the vehicle by enabling navigation to any drivable region on the road. To the best of our knowledge, this is among the first attempts toward live language-based navigation in outdoor environments.
+To address these limitations, we created CARLA-NAV using the CARLA simulator~\cite{dosovitskiy2017carla}. Combined with a visual grounding-based approach, the dataset allows fine-grained control over the vehicle by enabling navigation to any drivable region on the road. Live language-guided navigation in simulation has prior precedents; our contribution is a continuous-control, region-grounding formulation with dense annotations for outdoor dynamic scenes.
 
 \section{Initial Data Collection with GTA V}
 
@@ -45,13 +45,20 @@ The data collection process in CARLA was a collaborative effort involving three 
     \item \textbf{Verifier:} Reviews the language command, navigated path, and generated masks, and decides whether the episode is included in the dataset.
 \end{itemize}
 
-The 2D screen coordinates clicked by the navigator are transformed into 3D world coordinates using the inverse projective transform with CARLA's camera intrinsic and orientation matrices. This 3D position is passed to the local planner (CARLA's default planner in our case; the design is modular and can later use planners such as NEAT~\cite{chitta2021neat}).
+The 2D screen coordinates clicked by the navigator are transformed into 3D world coordinates using the inverse projective transform with CARLA's camera intrinsic and orientation matrices under a flat-ground assumption. This 3D position is passed to the local planner (CARLA's default planner in our case; the design is modular and can later use planners such as NEAT~\cite{chitta2021neat}). Early collection prototypes also experimented with reading depth from a CARLA depth camera for the clicked pixel; the released CARLA-NAV annotations follow the flat-ground rectangle projection documented below and in the archival paper.
 
-An episode comprises multiple mouse clicks until the final navigable region becomes visible in the front view. Intermediate clicks signify intermediate navigable regions; the last click depicts the final goal region. Mouse clicks are converted into segmentation masks by drawing a $3\mathrm{m} \times 4\mathrm{m}$ rectangle (approximately the size of a car) in the top view, centred at the click, and projecting that rectangle into the front camera. Overall, only language commands and mouse clicks require manual effort; the rest of the annotation process is automated.
+An episode comprises multiple mouse clicks until the final navigable region becomes visible in the front view. Intermediate clicks signify intermediate navigable regions; the last click depicts the final goal region. Mouse clicks are converted into segmentation masks by drawing a $3\mathrm{m} \times 4\mathrm{m}$ rectangle (approximately the size of a car) in the top view, centred at the click, and projecting that rectangle into the front camera. Overall, only language commands and mouse clicks require manual effort; the rest of the annotation process is automated. Early drafts treated intermediate and final regions as two separate segmentation classes to drive stopping; the released dataset and CLIP-family models use a single navigable-region mask, with the area-based stopping rule described in Chapter~\ref{ch:vln}.
 
 For the trajectory prediction task used later for interpretability, we take the 3D position of the vehicle in successive frames and project those positions onto the front-camera image. Trajectory prediction is treated as a dense prediction task and is not quantitatively evaluated.
 
-Figure~\ref{fig:dataset_sample} shows ground-truth annotations for three sampled frames from an episode of CARLA-NAV.
+Figure~\ref{fig:data_pipeline} summarises the collection loop; Figure~\ref{fig:dataset_sample} shows ground-truth annotations for three sampled frames from an episode of CARLA-NAV.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/vln/dataset_pipeline_v4.jpg}
+\caption{Pipeline for CARLA-NAV data collection. The user provides a language command and marks successive navigable regions with mouse clicks; the toolkit drives toward each target until the final destination, then stores camera matrices, images, masks, and vehicle/target positions.}
+\label{fig:data_pipeline}
+\end{figure}
 
 \begin{figure*}[ht]
 \centering
@@ -66,23 +73,32 @@ Relative to prior language-guided navigation and grounding datasets surveyed in 
 
 The dataset includes video sequences captured in 8 different maps, 14 distinct weather conditions, and a diverse range of dynamically moving vehicles and pedestrians. Language commands contain detailed visual descriptions and describe a wide range of manoeuvres. Commands can have a single manoeuvre (e.g., park behind the black car on the left) or multiple manoeuvres (e.g., take a right turn and park near the bus stand), with a maximum of three manoeuvres.
 
-Table~\ref{table:data_stats} reports dataset statistics. Since each episode contains multiple frames, the overall dataset size is 83,297 frames across all splits. During training we use pre-recorded sequences. During inference on validation and test splits, the vehicle is spawned at the corresponding starting location and navigation is performed live based on network prediction, not on the pre-recorded sequences.
+Table~\ref{table:data_stats} reports core episode statistics. Since each episode contains multiple frames, the overall dataset size is 83,297 frames across all splits. During training we use pre-recorded sequences. During inference on validation and test splits, the vehicle is spawned at the corresponding starting location and navigation is performed live based on network prediction, not on the pre-recorded sequences.
+
+The split sizes evolved during the project: an early draft used 441 train / 25 validation episodes; an intermediate draft used 500 train / 50 validation (with an internal note to split validation into 25/25); the released and archival configuration is 500 / 25 / 34 train/val/test as in Table~\ref{table:data_stats}. The additional nine test episodes relative to a 25/25 split were added before the CLIP-family evaluation reported in Chapter~\ref{ch:vln}.
 
 \begin{table}[ht]
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|}
+\begin{tabular}{|c|c|c|c|c|c|}
 \hline
-Split & \# Episodes & \# Frames & Command length (words) & Clicks \\ \hline
-Train & 500 & 75,010 & 6.92 & 1.94 \\ \hline
-Val   & 25  & 3,300  & 6.76 & 2.00 \\ \hline
-Test  & 34  & 4,987  & 7.44 & 1.97 \\ \hline
+Split & \# Episodes & \# Frames & Cmd len. & Clicks & Dist.\ (m) \\ \hline
+Train & 500 & 75,010 & 6.92 & 1.94 & 34.18 \\ \hline
+Val   & 25  & 3,300  & 6.76 & 2.00 & 37.26 \\ \hline
+Test  & 34  & 4,987  & 7.44 & 1.97 & 34.71 \\ \hline
 \end{tabular}
 \end{center}
-\caption{Dataset statistics for the CARLA-NAV dataset. Except ``\# Episodes'' and ``\# Frames'', average values per episode are reported for the other columns.}
+\caption{Dataset statistics for CARLA-NAV. Command length, clicks, and distance are averages per episode. Distance is measured along the demonstrated trajectory from spawn to final stop.}
 \label{table:data_stats}
 \end{table}
 
-Commands mainly consist of up to three subcommands, most having two. Subcommands include turning, going straight, stopping, and parking, and reference pedestrians, infrastructure, road elements, other vehicles, and scenery.
+\paragraph{Language and manoeuvre diversity.}
+Commands mainly consist of up to three subcommands, most having two. Subcommands include turning, going straight, stopping, and parking, and reference pedestrians, infrastructure, road elements, other vehicles, and scenery. A manual audit of the command list yields on the order of $10^2$ unique tokens and a few hundred distinct command strings after lowercasing (many near-paraphrases); we do not claim an exact vocabulary size without a released tokeniser dump. Roughly three-fifths of episodes are multi-step; among primary manoeuvre classes, turns are the most frequent, followed by park/pull-over, straight/lane-change, and stop/wait, in roughly comparable proportions. Relative to indoor VLN datasets such as R2R~\cite{anderson2018vision}, whose instructions average on the order of 29 words, CARLA-NAV commands are short (6.9--7.4 words). The language task is therefore substantially simpler than long-horizon indoor instruction following; the difficulty instead lies in dynamic outdoor grounding and continuous control. Chapter~\ref{ch:vln} reports stratified displacement metrics for earlier ViT/Conv3D models and specifies a TC-stratified per-manoeuvre protocol for the CLIP family.
+
+\paragraph{Maps and weather.}
+Episodes span eight CARLA maps and fourteen weather presets (clear, cloudy, wet, sunset, and night variants). Under the default protocol, episodes are shuffled so that maps and weathers appear in all of train, validation, and test in roughly balanced proportions. This design maximises diversity within each small split, but it is \emph{not} a held-out-map protocol: layout memorisation remains possible. The map-unseen evaluation contract is defined in Chapter~\ref{ch:vln}.
+
+\paragraph{Mask annotation coarseness.}
+Ground-truth navigable regions are $3\mathrm{m}\times 4\mathrm{m}$ rectangles projected from mouse clicks under a flat-ground assumption. This is a coarse proxy for the true drivable surface: the rectangle may overlap kerbs or undershoot wide parking gaps, and slope transitions introduce projective error (listed below). We treat these masks as supervision for learning \emph{approximate} goal regions rather than pixel-perfect road segmentation, and interpret quantitative mask-conditioned metrics accordingly.
 
 \section{Data Collection Challenges}
 
@@ -91,12 +107,12 @@ We encountered several practical challenges during data collection:
 \begin{enumerate}
     \item \textbf{Asynchronous simulation:} CARLA operates asynchronously, so the simulator does not wait for annotation code to finish before advancing. Careful synchronization was required so that frames being annotated matched the displayed state.
     \item \textbf{Slopes:} Transforming 2D screen coordinates into 3D world coordinates assumes a flat ground plane. Transitions from slopes to flat surfaces introduced inaccuracies that required special handling.
-    \item \textbf{Split contamination:} Given the finite CARLA maps, similar scenarios can appear across train, validation, and test splits. We mitigated this by shuffling episodes, randomizing spawn locations, and verifying diversity across splits.
+    \item \textbf{Split contamination:} Given the finite CARLA maps, similar scenarios can appear across train, validation, and test splits. Shuffling episodes and randomising spawn locations diversifies each split but \emph{does not} hold out maps; a model may still exploit shared layout. Chapter~\ref{ch:vln} therefore defines a map-unseen protocol as the stricter evaluation target.
     \item \textbf{Subjectivity:} Different observers and navigators may interpret the same command differently. Role rotation and verifier checks reduced individual bias.
 \end{enumerate}
 
 \section{Data Collection Team and Conclusion}
 
-The CARLA-NAV dataset was curated collaboratively. The team comprised KV Aditya Srivatsa, Amogh Tiwari, and myself, with each of us rotating through the roles of observer, navigator, and verifier. Dr. Vineet Gandhi also participated, providing more complex linguistic commands and acting as a verifier in ambiguous cases.
+The CARLA-NAV dataset was curated collaboratively. Annotation roles (observer, navigator, verifier) were rotated among the candidate, Amogh Tiwari, and Kanishk Jain (co-first author of the corresponding ICRA publication~\cite{jain2023ground}). KV~Aditya Srivatsa assisted with early data-collection tooling. Dr.~Vineet Gandhi provided more complex linguistic commands and acted as a verifier in ambiguous cases. A fuller contribution statement appears under Related Publications.
 
 In conclusion, CARLA-NAV provides a diverse set of language-guided outdoor navigation episodes with dense navigable-region and trajectory annotations. The dataset and collection toolkit form the foundation for the multi-task network and live-navigation experiments presented in Chapter~\ref{ch:vln}.

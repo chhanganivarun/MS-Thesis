@@ -46,9 +46,9 @@ This thesis makes the following contributions:
 
 \begin{enumerate}
     \item We present CARLA-NAV, a vision--language navigation toolkit and meta-dataset on the CARLA simulator that enables fine-grained, language-based navigational manoeuvres with continuous control via a local planner.
-    \item We propose a multi-task network for per-frame navigable-region prediction and short-term future trajectory prediction in dynamic outdoor environments. Both outputs are interpretable segmentation masks.
+    \item We propose a multi-task network for per-frame navigable-region prediction and short-term future trajectory prediction in dynamic outdoor environments. Both outputs are interpretable segmentation masks. We also document preliminary ViT and Conv3D (X3D) architectures that preceded the CLIP-based design.
     \item We perform real-time (live) navigation in CARLA with a diverse set of linguistic commands, using predicted masks as targets for the local planner and an area-based stopping criterion.
-    \item We provide extensive qualitative and quantitative ablations showing that multiple frames and historical contextual trajectory are both necessary for effective outdoor VLN.
+    \item We provide extensive qualitative and quantitative ablations showing that multiple frames and historical contextual trajectory are both necessary for effective outdoor VLN, including stratified displacement analyses for the earlier model lineage and formal analysis of grounding-first control.
 \end{enumerate}
 
 \section{Thesis Layout}
@@ -57,6 +57,6 @@ This thesis makes the following contributions:
     \item[C1] This chapter introduces the scope of the thesis, the research problems, motivation from prior work, and the main contributions.
     \item[C2] Chapter~\ref{ch:background} reviews background on autonomous navigation, computer vision, natural language processing, visual--language embeddings, language-guided navigation datasets and methods, and the CARLA simulator.
     \item[C3] Chapter~\ref{ch:dataset} describes the CARLA-NAV data collection process, dataset characteristics, and challenges encountered during curation.
-    \item[C4] Chapter~\ref{ch:vln} presents the problem formulation, multi-task network, live-navigation pipeline, evaluation metrics, and experimental results.
+    \item[C4] Chapter~\ref{ch:vln} presents the problem formulation, a formal analysis of grounding-first control, the multi-task network, live-navigation pipeline, evaluation metrics, CLIP-family results, preliminary ViT/Conv3D architectures with stratified ablations, and an extended evaluation protocol.
     \item[C5] Chapter~\ref{ch:conc} concludes the thesis and outlines directions for future work.
 \end{itemize}
