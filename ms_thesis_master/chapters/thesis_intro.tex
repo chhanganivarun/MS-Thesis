@@ -1,6 +1,6 @@
 \section{Scope of the Thesis}
 
-The focus of this thesis is Vision-and-Language Navigation (VLN) for autonomous driving in outdoor settings. Humans routinely navigate from linguistic descriptions of the environment---associating visual elements with words such as ``the black car on the left'' or ``the bus stand after the traffic light.'' Transferring this capability to an autonomous vehicle requires grounding language in a continuously changing visual scene and converting that grounding into actionable control.
+The focus of this thesis is Vision-and-Language Navigation (VLN) for autonomous driving in outdoor settings. Humans routinely navigate from linguistic descriptions of the environment, associating visual elements with words such as ``the black car on the left'' or ``the bus stand after the traffic light.'' Transferring this capability to an autonomous vehicle requires grounding language in a continuously changing visual scene and converting that grounding into actionable control.
 
 Existing VLN methods fall short in this setting. Indoor approaches often assume a known map that can be discretized into a navigation graph~\cite{anderson2018vision,krantz2020beyond}. Outdoor methods frequently restrict the agent to a small discrete action set on pre-recorded street views~\cite{Chen2019TOUCHDOWN,schumann-riezler-2022-analyzing}. Single-image visual grounding methods for navigable regions~\cite{Rufus_2021} assume that the referred region is always visible in the current frame. None of these assumptions hold for live outdoor driving, where the environment is unknown, dynamic, and where commands routinely refer to regions that are not yet in view.
 
@@ -13,7 +13,7 @@ This thesis reformulates the Referring Navigable Regions (RNR) task for dynamic 
     Single-image grounding methods~\cite{Rufus_2021,hu2016segmentation,rohrbach2016grounding} fail when the region described by the command is occluded, out of frame, or not yet visible. Everyday commands such as ``take a right once you see the traffic signal'' require predicting intermediate navigable regions until the final goal comes into view.
 
     \item[\textbf{B}] \textit{Moving beyond discrete action spaces for outdoor VLN.} \\
-    Discretizing actions (FORWARD, LEFT, RIGHT, STOP) or environment graphs limits fine manoeuvres such as ``park between the two cars on the right''~\cite{Chen2019TOUCHDOWN,zhu-etal-2021-multimodal}. Outdoor VLN needs continuous control over any drivable region on the road.
+    Discretizing actions (FORWARD, LEFT, RIGHT, STOP) or environment graphs limits fine maneuvers such as ``park between the two cars on the right''~\cite{Chen2019TOUCHDOWN,zhu-etal-2021-multimodal}. Outdoor VLN needs continuous control over any drivable region on the road.
 
     \item[\textbf{C}] \textit{Exploiting temporal and trajectory context for live navigation.} \\
     Static-image methods lack short-term and long-term temporal context. For multi-step commands (e.g., ``turn left and park near the blue dustbin''), the model must know which part of the instruction has already been executed. Historical trajectory context and multi-frame visual features are essential for live inference in a changing scene.
@@ -23,39 +23,48 @@ This thesis reformulates the Referring Navigable Regions (RNR) task for dynamic 
 
 \subsection{Limitations of Single-Image Visual Grounding}
 
-Referring Expression Comprehension (REC)~\cite{rohrbach2016grounding,hu2016natural} and Referring Image Segmentation (RIS)~\cite{hu2016segmentation} localize objects from language, but object boxes or masks do not answer ``which region on the road to drive to.'' Referring Navigable Regions (RNR)~\cite{Rufus_2021} addresses this by predicting a navigable region on the road for a linguistic command. However, RNR is limited to static images from pre-recorded sequences and assumes the target is always visible. Figure~\ref{fig:teaser} illustrates a characteristic failure: the model correctly grounds a visible black car, yet completely confuses a left-turn command that does not exist in the current view.
+Referring Expression Comprehension (REC)~\cite{rohrbach2016grounding,hu2016natural} and Referring Image Segmentation (RIS)~\cite{hu2016segmentation} localize objects from language, but object boxes or masks do not answer ``which region on the road to drive to.'' Referring Navigable Regions (RNR)~\cite{Rufus_2021} addresses this by predicting a navigable region on the road for a linguistic command. However, RNR is limited to static images from pre-recorded sequences and assumes the target is always visible. As shown in Figure~\ref{fig:teaser}, the model correctly grounds a visible black car, yet completely confuses a left-turn command that does not exist in the current view.
 
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/vln/VLN_Motivation.jpg}
-    \caption{A major limitation of single image-based grounding methods is that they fail if the language command is not immediately visible, which restricts these methods for VLN. Here we show an example using the RNR model~\cite{Rufus_2021} on an image from their dataset. The model accurately localizes the black car (middle), but completely confuses when asked to predict a left turn that does not exist in the current view.}
+    \caption[Single-image grounding fails on deferred goals]{This is exactly the failure mode targeted by Problem~A: single-image grounding succeeds when the referent is visible (black car, middle) but collapses when the command names a maneuver that is not yet in view (left turn). Example from the RNR model~\cite{Rufus_2021} on an image from their dataset. The thesis therefore predicts intermediate navigable regions until the final goal appears.}
     \label{fig:teaser}
 \end{figure}
 
 \subsection{Limitations of Graph-Based and Discrete-Action VLN}
 
-Indoor VLN often assumes a known topology and models navigation as graph traversal~\cite{anderson2018vision,kolve2017ai2,chang2017matterport3d}. Outdoor datasets such as Touchdown~\cite{Chen2019TOUCHDOWN} operate on Google Street View with four discrete actions. These designs preclude fine-grained outdoor manoeuvres and make live evaluation in a fully navigable dynamic environment difficult. Prior CARLA-based language work has also been limited in action diversity~\cite{sriram2019talk}, and Talk2Car focuses on localizing referred objects rather than navigating to regions~\cite{deruyttere2019talk2car}.
+Indoor VLN often assumes a known topology and models navigation as graph traversal~\cite{anderson2018vision,kolve2017ai2,chang2017matterport3d}. Outdoor datasets such as Touchdown~\cite{Chen2019TOUCHDOWN} operate on Google Street View with four discrete actions. These designs preclude fine-grained outdoor maneuvers and make live evaluation in a fully navigable dynamic environment difficult. Prior CARLA-based language work has also been limited in action diversity~\cite{sriram2019talk}, and Talk2Car focuses on localizing referred objects rather than navigating to regions~\cite{deruyttere2019talk2car}.
 
 \subsection{Need for a Live Outdoor Benchmark}
 
 Evaluating on frames from pre-recorded videos does not measure whether an agent can complete an entire episode from start to finish in a changing scene. A dataset that supports both supervised training on pre-recorded sequences and live validation in simulation is required to study language-guided outdoor navigation end to end.
 
 \section{Contributions}
+\label{sec:contributions}
 
 This thesis makes the following contributions:
 
 \begin{enumerate}
-    \item We present CARLA-NAV, a vision--language navigation toolkit and meta-dataset on the CARLA simulator that enables fine-grained, language-based navigational manoeuvres with continuous control via a local planner.
-    \item We propose a multi-task network for per-frame navigable-region prediction and short-term future trajectory prediction in dynamic outdoor environments. Both outputs are interpretable segmentation masks. We also document preliminary ViT and Conv3D (X3D) architectures that preceded the CLIP-based design.
-    \item We perform real-time (live) navigation in CARLA with a diverse set of linguistic commands, using predicted masks as targets for the local planner and an area-based stopping criterion.
-    \item We provide extensive qualitative and quantitative ablations showing that multiple frames and historical contextual trajectory are both necessary for effective outdoor VLN, including stratified displacement analyses for the earlier model lineage and formal analysis of grounding-first control.
+    \item\label{contrib:dataset} We present CARLA-NAV, a vision--language navigation toolkit and meta-dataset on the CARLA simulator that enables fine-grained, language-based navigational maneuvers with continuous control via a local planner.
+    \item\label{contrib:network} We propose a multi-task network for per-frame navigable-region prediction and short-term future trajectory prediction in dynamic outdoor environments. Both outputs are interpretable segmentation masks. We also document preliminary ViT and Conv3D (X3D) architectures that preceded the CLIP-based design. The network is demonstrated in Chapter~\ref{ch:vln}; the ablation isolating the trajectory head remains future work (Section~\ref{sec:extended_eval}).
+    \item\label{contrib:live} We perform real-time (live) navigation in CARLA with a diverse set of linguistic commands, using predicted masks as targets for the local planner and an area-based stopping criterion.
+    \item\label{contrib:ablations} We provide extensive qualitative and quantitative ablations showing that multiple frames and historical contextual trajectory are both necessary for effective outdoor VLN, including stratified displacement analyses for the earlier model lineage and formal analysis of grounding-first control.
 \end{enumerate}
+
+Where each contribution is demonstrated:
+\begin{itemize}
+    \item Contribution~\ref{contrib:dataset}: Chapter~\ref{ch:dataset} (collection methodology, Table~\ref{table:data_stats}) and Table~\ref{table:dataset_comparison} in Chapter~\ref{ch:background}.
+    \item Contribution~\ref{contrib:network}: Section~\ref{sec:methodology} and Figure~\ref{fig:proposed_pipeline} in Chapter~\ref{ch:vln}.
+    \item Contribution~\ref{contrib:live}: Section~\ref{sec:live_nav}, Algorithm~\ref{alg:target}, and Table~\ref{table:task_completion} in Chapter~\ref{ch:vln}.
+    \item Contribution~\ref{contrib:ablations}: Tables~\ref{table:frame_ablation}, \ref{table:conv3d_vit}, and~\ref{table:cmd_type}--\ref{table:subcommand}, plus the formal analysis in Section~\ref{sec:formal_analysis}.
+\end{itemize}
 
 \section{Thesis Layout}
 
 \begin{itemize}
     \item[C1] This chapter introduces the scope of the thesis, the research problems, motivation from prior work, and the main contributions.
-    \item[C2] Chapter~\ref{ch:background} reviews background on autonomous navigation, computer vision, natural language processing, visual--language embeddings, language-guided navigation datasets and methods, and the CARLA simulator.
+    \item[C2] Chapter~\ref{ch:background} reviews background on autonomous navigation, computer vision, natural language processing, vision--language embeddings, language-guided navigation datasets and methods, and the CARLA simulator.
     \item[C3] Chapter~\ref{ch:dataset} describes the CARLA-NAV data collection process, dataset characteristics, and challenges encountered during curation.
     \item[C4] Chapter~\ref{ch:vln} presents the problem formulation, a formal analysis of grounding-first control, the multi-task network, live-navigation pipeline, evaluation metrics, CLIP-family results, preliminary ViT/Conv3D architectures with stratified ablations, and an extended evaluation protocol.
     \item[C5] Chapter~\ref{ch:conc} concludes the thesis and outlines directions for future work.

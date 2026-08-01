@@ -5,6 +5,10 @@
 
 \documentclass[11pt]{book}
 \usepackage{style/iiit_thesis}
+% Override style defaults so \paragraph is unnumbered and out of the ToC
+% (avoids 3.5.0.0.1-style numbers). \subsection and \subsubsection remain numbered.
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
 
 \usepackage{hyperref}
 \usepackage{times}
@@ -27,6 +31,11 @@
 \usepackage{polyglossia}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning}
+
+% Outstanding-item highlighting. For final submission, replace the options
+% with [disable] to hide every \thesistodo box and the List of Outstanding Items.
+\usepackage[colorinlistoftodos,textsize=small]{todonotes}
+\newcommand{\thesistodo}[1]{\todo[inline,color=orange!20]{\textbf{TODO:} #1}}
 
 \usepackage{fontspec}
 \newfontfamily\hindifont{Noto Sans Devanagari}[Script=Devanagari]
@@ -82,12 +91,18 @@
 \tableofcontents
 \listoffigures
 \listoftables
+\phantomsection
+\addcontentsline{toc}{chapter}{List of Outstanding Items}
+\listoftodos[List of Outstanding Items]
 
 \chapter*{List of Acronyms}
 \addcontentsline{toc}{chapter}{List of Acronyms}
 \begin{center}
 \begin{tabular}{@{}ll@{}}
 ADE & Average Displacement Error \\
+ADE-Match & Average Displacement Error (coupling-based) \\
+ASPP & Atrous Spatial Pyramid Pooling \\
+BCE & Binary Cross-Entropy \\
 BERT & Bidirectional Encoder Representations from Transformers \\
 CARLA & Car Learning to Act \\
 CIRL & Controllable Imitative Reinforcement Learning \\
@@ -96,10 +111,13 @@ CNN & Convolutional Neural Network \\
 DUET & Dual-scale Graph Transformer \\
 EnvDrop & Environmental Dropout \\
 FDE & Final Displacement Error \\
+GloVe & Global Vectors for Word Representation \\
 GPS & Global Positioning System \\
 IMU & Inertial Measurement Unit \\
+IoU & Intersection over Union \\
 LiDAR & Light Detection and Ranging \\
 LSTM & Long Short-Term Memory \\
+MLP & Multilayer Perceptron \\
 nDTW & Normalized Dynamic Time Warping \\
 NLP & Natural Language Processing \\
 R2R & Room-to-Room \\
@@ -110,6 +128,7 @@ SLAM & Simultaneous Localization and Mapping \\
 TC & Task Completion \\
 ViT & Vision Transformer \\
 VLN & Vision-and-Language Navigation \\
+X3D & Expand 3D (video CNN) \\
 \end{tabular}
 \end{center}
 

@@ -81,7 +81,27 @@ Each entry follows the same five parts:
 
 ## Method
 
-*(entries to be added)*
+### Why segmentation and not waypoint prediction?
+
+**Know the trap first.** The thesis does *not* formally answer this question. `sec:formal_analysis` contains a subsection titled "Why Segmentation Dominates Discrete Action Selection" — it rules out a *finite action alphabet* (FORWARD/LEFT/RIGHT/STOP) via the Hausdorff quantisation gap \(\delta = \sup_{x \in \mathcal{R}_{\text{road}}} \inf_{y \in \mathcal{R}_{\text{disc}}} \|x - y\|\). That argument has no force against continuous waypoint regression, which has no quantisation gap at all. Do not answer this question by reciting the discrete-action argument; an examiner asking about waypoints has probably noticed exactly that the formal analysis skips this comparison.
+
+**Say first.** Because the target is set-valued, not point-valued. A command like "park between the two cars on the right" admits multiple valid goal locations, and a regression head trained under squared loss converges to the conditional *mean* of those modes — which for a bimodal target sits between the two parking spots, in the middle of the road, and is not itself a valid goal. A segmentation head models a per-pixel field, so it can place mass on several disjoint valid regions; taking the largest connected component then recovers a *mode* rather than an average.
+
+**The connective tissue.** This is the same observation that drives the metric argument in `sec:metric_validity`: a command designates a set Φ(C), not a single element. The thesis applies that insight to the *evaluation* (hence Task Completion over ADE/FDE) but never applies it to the *output head*, which is where this question lands. Being able to state that the two arguments are the same argument in two places is the strongest available answer.
+
+**Backing — the three points that do transfer.** From `sec:formal_analysis`, "Advantages of Grounding-First" (`vln.tex` lines 38–42):
+
+- **Supervision density.** Each frame supplies \(O(HW)\) pixel-level targets rather than a single label. Against waypoint regression the contrast is even sharper — a waypoint gives two scalars per frame.
+- **Dynamics as a prior.** The factorisation \(P(\text{controls} \mid V,P,L) = P_{\text{plan}}(\text{controls} \mid y_t, \text{state})\,P_\theta(y_t \mid V,P,L)\) puts kinematics and collision avoidance in a fixed planner. The network learns *where*, the planner learns *how*. This part is orthogonal to mask-vs-waypoint — both are grounding-first — so do not oversell it here.
+- **Inspectability.** A mask shows the model's believed *extent* of navigability; a waypoint is a single dot. This is the operational basis of the interpretability contribution, not a post-hoc explanation.
+
+**Two system-level reasons specific to this build.** The stopping rule in Algorithm 1 (`sec:live_nav`) fires when mask *area* exceeds a threshold for five consecutive predictions — area grows under perspective as the vehicle approaches. A waypoint has no area, so a separate distance or termination estimator would be needed. Second, commands routinely refer to regions not yet in frame; a thresholded probability field supports natural abstention and the confidence-band fallbacks documented in the stopping-rule evolution, whereas a point regressor always emits some point with no notion of "not yet visible."
+
+**Lineage.** The task formulation inherits from RNR~(Rufus et al.), which `background.tex` line 194 calls "the right output type for our setting." The thesis reformulates RNR for dynamic scenes rather than replacing its output space. `background.tex` line 197 dismisses Talk2Nav-style waypoint selection as restricting manoeuvre diversity — note this is a related-work dismissal, not a controlled comparison.
+
+**Follow-up — "you take the centroid of the largest connected component and hand the planner a single point, so you are doing waypoint prediction with extra steps."** This is the sharpest form of the question and the thesis concedes the information discard at `vln.tex` line 159: Pointing Game and Recall@k "measure a signal the closed-loop controller mostly discards — only the centroid of the largest connected component reaches the planner." The answer is that the collapse happens *at the planner interface*, after three things the mask has already done that a regressor cannot: selected a mode instead of averaging them, supplied the area that triggers stopping, and provided the dense gradient that shaped the representation during training. The output is a point; the *computation that chooses* the point is not point-based.
+
+**Concede.** No ablation compares a mask head against a coordinate-regression head on CARLA-NAV, so the claim rests on the argument above rather than on measurement. The honest scope: naive single-point L2 regression is ruled out by mode averaging, but a modern multimodal waypoint head — mixture density, anchor set, or trajectory-set classification, as used in current end-to-end driving stacks — would sidestep that objection, and the thesis does not evaluate against one. Note also that the trajectory head \(z_t\) is itself the closest thing to waypoint prediction in the system, and it too is rendered as a dense mask, is not fed to the planner (`vln.tex` line 44), and was never ablated (line 514).
 
 ## Results
 

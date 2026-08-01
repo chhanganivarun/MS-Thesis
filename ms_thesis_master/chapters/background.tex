@@ -1,4 +1,4 @@
-In this chapter, we review the concepts that underpin the rest of the thesis, with emphasis on a critical rather than textbook survey of Vision-and-Language Navigation (VLN). We briefly situate autonomous navigation, computer vision, and language understanding as they relate to language-guided driving; discuss visual--language embeddings with a focus on CLIP and dense adaptations; then taxonomise VLN methods, compare families by what fails under outdoor dynamic driving, and map the resulting research gaps to Problems~A--C from Chapter~\ref{ch:intro}. We close with the CARLA simulator and a summary linking this background to Chapters~\ref{ch:dataset} and~\ref{ch:vln}.
+In this chapter, we review the concepts that underpin the rest of the thesis, with emphasis on a critical rather than textbook survey of Vision-and-Language Navigation (VLN). We briefly situate autonomous navigation, computer vision, and language understanding as they relate to language-guided driving; discuss vision--language embeddings with a focus on CLIP and dense adaptations; then taxonomize VLN methods, compare families by what fails under outdoor dynamic driving, and map the resulting research gaps to Problems~A--C from Chapter~\ref{ch:intro}. We close with the CARLA simulator and a summary linking this background to Chapters~\ref{ch:dataset} and~\ref{ch:vln}.
 
 \begin{figure}[ht]
     \centering
@@ -21,15 +21,15 @@ In this chapter, we review the concepts that underpin the rest of the thesis, wi
         \draw[arr] (mask) -- (planner);
         \draw[arr] (planner) -- (ctrl);
     \end{tikzpicture}
-    \caption{High-level Vision-and-Language Navigation (VLN) setup considered in this thesis: a language command and visual observations are grounded into a navigable region, which a local planner executes in continuous action space.}
+    \caption[Grounding-first VLN setup]{High-level Vision-and-Language Navigation (VLN) setup in this thesis. Language and visual observations are grounded into a navigable-region mask, which a local planner executes in continuous action space. This factorization is the structural break from nav-graph and discrete-action families surveyed below: the vehicle can be asked to drive toward any point on the road, not merely to choose from a fixed action menu.}
     \label{fig:vln_setup_schematic}
 \end{figure}
 
 \section{Introduction to Autonomous Navigation}
 
-Autonomous navigation is the science of enabling a robot or a vehicle to move through its environment without continuous human control~\cite{Thrun2005}. It is fundamental to self-driving cars, delivery robots, and related systems~\cite{Siegwart2011, Siciliano2016}. The classical pipeline comprises several interconnected stages: perception, localization, mapping, path planning, and control~\cite{Latombe1991}.
+Before specializing to language-guided driving, we recall the classical navigation pipeline so that the role of our grounding network is clear. Autonomous navigation is the science of enabling a robot or a vehicle to move through its environment without continuous human control~\cite{Thrun2005}. It is fundamental to self-driving cars, delivery robots, and related systems~\cite{Siegwart2011, Siciliano2016}. The classical pipeline comprises several interconnected stages: perception, localization, mapping, path planning, and control~\cite{Latombe1991}.
 
-For road vehicles, the importance of autonomous navigation can be summarised as follows:
+For road vehicles, the importance of autonomous navigation can be summarized as follows:
 
 \begin{enumerate}
 \item \textbf{Safety and efficiency:} Reducing human error while improving traffic flow and mobility~\cite{Toghi2021}.
@@ -40,7 +40,7 @@ For road vehicles, the importance of autonomous navigation can be summarised as 
 
 \textbf{Perception} uses sensors such as cameras, LiDAR, radar, and ultrasonics to observe the environment~\cite{Borenstein1996,Siegwart2011}.
 \textbf{Localization} estimates the vehicle's pose within that environment~\cite{Thrun2005}, using odometry, inertial measurement units (IMUs), GPS, or Simultaneous Localization and Mapping (SLAM)~\cite{DurrantWhyte2006}.
-\textbf{Mapping} builds a representation of the surroundings---from a simple 2D occupancy grid to a rich 3D map---for planning and obstacle avoidance~\cite{Thrun2002,Elfes1989}.
+\textbf{Mapping} builds a representation of the surroundings, from a simple 2D occupancy grid to a rich 3D map, for planning and obstacle avoidance~\cite{Thrun2002,Elfes1989}.
 \textbf{Path planning} computes a route from the current pose to a goal while accounting for obstacles~\cite{LaValle2006,Kavraki1996}.
 \textbf{Control} executes the plan by issuing actuator commands and correcting deviations from feedback~\cite{Siciliano2010}.
 
@@ -56,7 +56,7 @@ In this thesis, the local planner plays the role of path planning and control, w
 
 \section{Computer Vision for Language-Guided Driving}
 
-For this thesis, computer vision matters insofar as it supplies dense spatial predictions that can be aligned with language~\cite{Szeliski2010,Chen2015}. Object detection localises named entities~\cite{redmon2016you,Ren2017Faster}; semantic segmentation labels every pixel with a class such as road or vehicle~\cite{badrinarayanan2017segnet,cordts2016cityscapes}. Referring Image Segmentation goes further by conditioning the mask on a phrase~\cite{hu2016segmentation}. Our navigable-region task is closest to the last: the network outputs a pixel-level mask of the region to drive toward, not a discrete action and not merely a box around a referred object.
+With the navigation pipeline in place, we next isolate the vision capabilities that language-guided driving actually needs. For this thesis, computer vision matters insofar as it supplies dense spatial predictions that can be aligned with language~\cite{Szeliski2010,Chen2015}. Object detection localizes named entities~\cite{redmon2016you,Ren2017Faster}; semantic segmentation labels every pixel with a class such as road or vehicle~\cite{badrinarayanan2017segnet,cordts2016cityscapes}. Referring Image Segmentation goes further by conditioning the mask on a phrase~\cite{hu2016segmentation}. Our navigable-region task is closest to the last: the network outputs a pixel-level mask of the region to drive toward, not a discrete action and not merely a box around a referred object.
 
 \subsection{Vision Encoders in Autonomous Navigation}
 
@@ -64,19 +64,19 @@ Convolutional Neural Networks (CNNs) are widely used for visual recognition~\cit
 
 Krantz et al.~\cite{krantz2020beyond}, in \textit{Beyond the Nav-Graph: Vision-and-Language Navigation in Continuous Environments}, use a ResNet-50 visual encoder and argue that discrete navigation-graph assumptions can inflate reported performance. Controllable Imitative Reinforcement Learning (CIRL) similarly relies on vision encoders to learn driving policies from visual input~\cite{Liang2018CIRL}. Imaging laser radars have also been studied as complementary sensors for robotics perception~\cite{Hebert3}.
 
-For this thesis, the key takeaway is that strong visual features---and especially features that can be aligned with language---are a prerequisite for grounding navigable regions. Chapter~\ref{ch:vln} therefore uses CLIP visual features rather than a purely vision-only CNN backbone.
+For this thesis, the key takeaway is that strong visual features, and especially features that can be aligned with language, are a prerequisite for grounding navigable regions. Chapter~\ref{ch:vln} therefore uses CLIP visual features rather than a purely vision-only CNN backbone.
 
 \section{Language Understanding for Navigation}
 
-Natural language instructions must be mapped to actionable structure in the scene~\cite{Chen2011Learning,anderson2018vision}. Modern systems rely on contextual encoders such as BERT~\cite{devlin2018bert} and on attention over multimodal tokens~\cite{vaswani2017attention,hong2021vln}. Outdoor driving commands in this thesis are short but referentially rich---objects, colours, spatial relations, manoeuvres---so the encoder must preserve word-level distinctions and align them with visual features. Raychaudhuri et al.~\cite{Raychaudhuri2021Language} emphasise language-aligned supervision for tracking instruction progress; DUET~\cite{chen2022think} combines coarse map reasoning with fine grounding indoors. We instead use a jointly pretrained vision--language encoder (CLIP) so that command and road image live in one embedding space before dense prediction, without assuming an indoor map.
+Vision alone does not specify the goal; language must be mapped to actionable structure in the scene~\cite{Chen2011Learning,anderson2018vision}. Modern systems rely on contextual encoders such as BERT~\cite{devlin2018bert} and on attention over multimodal tokens~\cite{vaswani2017attention,hong2021vln}. Outdoor driving commands in this thesis are short but referentially rich, covering objects, colors, spatial relations, and maneuvers, so the encoder must preserve word-level distinctions and align them with visual features. Raychaudhuri et al.~\cite{Raychaudhuri2021Language} emphasize language-aligned supervision for tracking instruction progress; DUET~\cite{chen2022think} combines coarse map reasoning with fine grounding indoors. We instead use a jointly pretrained vision--language encoder (CLIP) so that command and road image live in one embedding space before dense prediction, without assuming an indoor map.
 
-\section{Combining Vision and Language: Visual-Language Embeddings}
+\section{Combining Vision and Language: Vision--Language Embeddings}
 
-Visual--language embeddings place images and text in a common representation space so that semantic matches lie close together~\cite{Baltrusaitis2019Multimodal,Lu2019VILBERT}.
+Having treated vision and language separately, we now turn to embeddings that place them in one space. Vision--language embeddings place images and text in a common representation space so that semantic matches lie close together~\cite{Baltrusaitis2019Multimodal,Lu2019VILBERT}.
 
 \subsection{Introduction to CLIP and Beyond}
 
-CLIP (Contrastive Language--Image Pretraining)~\cite{radford2021learning} is trained on large-scale internet image--text pairs. An image encoder and a text encoder are jointly optimised so that matched pairs are close in a shared embedding space (Figure~\ref{fig:clip_schematic}). This dual-encoder design makes CLIP a natural backbone for VLN, where camera frames and linguistic commands must be aligned.
+CLIP (Contrastive Language--Image Pretraining)~\cite{radford2021learning} is trained on large-scale internet image--text pairs. An image encoder and a text encoder are jointly optimized so that matched pairs are close in a shared embedding space (Figure~\ref{fig:clip_schematic}). This dual-encoder design makes CLIP a natural backbone for VLN, where camera frames and linguistic commands must be aligned.
 
 \begin{figure}[ht]
     \centering
@@ -99,7 +99,7 @@ CLIP (Contrastive Language--Image Pretraining)~\cite{radford2021learning} is tra
         \draw[arr] (vemb) -- (space);
         \draw[arr] (lemb) -- (space);
     \end{tikzpicture}
-    \caption{CLIP~\cite{radford2021learning} encodes images and text into a shared embedding space via contrastive learning. We use CLIP features for both modalities in Chapter~\ref{ch:vln}.}
+    \caption[CLIP shared embedding space]{CLIP~\cite{radford2021learning} encodes images and text into a shared embedding space via contrastive learning. Because command and image already share one space, the fusion block in Chapter~\ref{ch:vln} starts from an aligned representation rather than learning alignment from only 500 training episodes.}
     \label{fig:clip_schematic}
 \end{figure}
 
@@ -107,24 +107,22 @@ Larger generative models such as GPT-4~\cite{openai2023gpt4} and multi-modal arc
 
 \subsection{Why They Matter for Language-Guided Navigation}
 
-In language-guided navigation, visual--language embeddings let a system relate what it sees to what it is told to do~\cite{Chen2019TOUCHDOWN}. Dense-prediction adaptations of CLIP are especially relevant to our mask outputs: DenseCLIP converts image--text matching into pixel--text matching~\cite{Rao_Zhao_Chen_Tang_Zhu_Huang_Zhou_Lu_2022}, and CLIPSeg shows that frozen CLIP features can be decoded into referring segmentations from text prompts~\cite{luddecke2022clipseg}. Both lines of work support treating VLN as dense grounding rather than as action classification.
+In language-guided navigation, vision--language embeddings let a system relate what it sees to what it is told to do~\cite{Chen2019TOUCHDOWN}. Dense-prediction adaptations of CLIP are especially relevant to our mask outputs: DenseCLIP converts image--text matching into pixel--text matching~\cite{Rao_Zhao_Chen_Tang_Zhu_Huang_Zhou_Lu_2022}, and CLIPSeg shows that frozen CLIP features can be decoded into referring segmentations from text prompts~\cite{luddecke2022clipseg}. Both lines of work support treating VLN as dense grounding rather than as action classification.
 
 The practical implication for Chapters~\ref{ch:dataset} and~\ref{ch:vln} is architectural: we treat VLN as grounding a command into a navigable region using CLIP features, then hand that region to a planner, rather than translating language directly into a discrete action. Chapter~\ref{ch:vln} further explains why we migrated from earlier GloVe+LSTM and X3D/ViT stacks to CLIP as the multimodal backbone.
 
 \section{Language-Guided Navigation}
 
+We now taxonomize prior VLN work along the axes that determine whether an approach can transfer to dynamic outdoor driving. Language-guided navigation develops systems that interpret natural language instructions and use them to move through a physical or virtual environment~\cite{anderson2018vision}. It combines NLP, computer vision, and sequential decision-making. Challenges that matter for outdoor driving include referential ambiguity (the same words can denote different road regions), linguistic variability, reliable multimodal fusion under changing traffic, and control rates compatible with vehicle dynamics~\cite{Dominguez2015,Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018}. Applications include passenger voice commands in autonomous vehicles and interactive robots; our focus is the hard outdoor case of grounding \emph{intermediate} navigable regions when the final referred goal is not yet visible.
+
 \subsection{Overview}
 
-Language-guided navigation develops systems that interpret natural language instructions and use them to move through a physical or virtual environment~\cite{anderson2018vision}. It combines NLP, computer vision, and sequential decision-making. Challenges that matter for outdoor driving include referential ambiguity (the same words can denote different road regions), linguistic variability, reliable multimodal fusion under changing traffic, and control rates compatible with vehicle dynamics~\cite{Dominguez2015,Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018}. Applications include passenger voice commands in autonomous vehicles and interactive robots; our focus is the hard outdoor case of grounding \emph{intermediate} navigable regions when the final referred goal is not yet visible.
-
-\subsection{A Taxonomy of VLN}
-
-Rather than listing methods alphabetically, we organise the literature along five axes that determine whether an approach can transfer to dynamic outdoor driving (Table~\ref{table:method_taxonomy}):
+Rather than listing methods alphabetically, we organize the literature along five axes that determine whether an approach can transfer to dynamic outdoor driving (Table~\ref{table:method_taxonomy}):
 
 \begin{enumerate}
     \item \textbf{Environment representation:} navigation graph (nodes/edges) versus continuous free space.
     \item \textbf{Action space:} discrete symbolic actions versus continuous controls or planner goals.
-    \item \textbf{Supervision:} imitation / behaviour cloning, reinforcement learning, or dense mask / region labels.
+    \item \textbf{Supervision:} imitation / behavior cloning, reinforcement learning, or dense mask / region labels.
     \item \textbf{Fusion strategy:} late fusion of separately encoded modalities, early concatenation, or cross-/self-attention over joint tokens.
     \item \textbf{Evaluation protocol:} scoring offline frames or panoramic hops versus live closed-loop episodes.
 \end{enumerate}
@@ -144,18 +142,18 @@ E.T.~\cite{pashevich2021episodic} & Continuous & Low-level & IL & Transformer & 
 Touchdown agents~\cite{Chen2019TOUCHDOWN,schumann-riezler-2022-analyzing} & Street graph & Discrete & IL & Cross-modal & Offline panoramas \\
 Talk2Car~\cite{deruyttere2019talk2car} & Image & Object box & Dense / det. & Multimodal & Offline frames \\
 RNR~\cite{Rufus_2021} & Image & Region mask & Dense mask & Multimodal & Offline frames \\
-Ground-then-nav.\ (ours) & Continuous road & Planner goal & Dense mask & CLIP+attn & Live CARLA \\
+Grounding-first (ours) & Continuous road & Planner goal & Dense mask & CLIP+attn & Live CARLA \\
 \bottomrule
 \end{tabular}
-\caption{Taxonomy of representative VLN and grounding methods along axes relevant to outdoor driving. ``IL'' denotes imitation learning; ``hops'' denotes discrete panoramic transitions.}
+\caption[Taxonomy of VLN methods for outdoor driving]{Taxonomy of representative VLN and grounding methods along axes relevant to outdoor driving. Reading left to right shows why most prior families cannot transfer: they assume a nav-graph or discrete actions, use offline hop evaluation, or ground objects rather than navigable regions. ``IL'' denotes imitation learning; ``hops'' denotes discrete panoramic transitions.}
 \label{table:method_taxonomy}
 \end{table}
 
 \subsection{Existing Datasets}
 
-Several datasets have shaped the field. Anderson et al.~\cite{anderson2018vision} introduce Room-to-Room (R2R) over Matterport3D indoor panoramas with long natural-language instructions. Outdoor Street View settings include Touchdown~\cite{Chen2019TOUCHDOWN} and StreetNav~\cite{mirowski2018learning}, which support discrete panoramic navigation rather than continuous driving. Interactive indoor simulators such as AI2-THOR~\cite{kolve2017ai2} and House3D~\cite{wu2018building}, and RGB-D resources such as AVD~\cite{Ammirato2017dataset} and 2D-3D-S~\cite{armeni2017joint}, underpin much indoor work but do not model road traffic. Mapillary sequences~\cite{warburg2020mapillary,Neuhold2017mapillary} provide street-level imagery for recognition and segmentation, not instruction following. Closer to our setting, Talk2Car~\cite{deruyttere2019talk2car} grounds referred objects in nuScenes driving scenes, and Referring Navigable Regions (RNR)~\cite{Rufus_2021} predicts navigable road masks on static frames.
+The taxonomy above is incomplete without asking which datasets can support outdoor continuous control. Several datasets have shaped the field. Anderson et al.~\cite{anderson2018vision} introduce Room-to-Room (R2R) over Matterport3D indoor panoramas with long natural-language instructions. Outdoor Street View settings include Touchdown~\cite{Chen2019TOUCHDOWN} and StreetNav~\cite{mirowski2018learning}, which support discrete panoramic navigation rather than continuous driving. Interactive indoor simulators such as AI2-THOR~\cite{kolve2017ai2} and House3D~\cite{wu2018building}, and RGB-D resources such as AVD~\cite{Ammirato2017dataset} and 2D-3D-S~\cite{armeni2017joint}, underpin much indoor work but do not model road traffic. Mapillary sequences~\cite{warburg2020mapillary,Neuhold2017mapillary} provide street-level imagery for recognition and segmentation, not instruction following. Closer to our setting, Talk2Car~\cite{deruyttere2019talk2car} grounds referred objects in nuScenes driving scenes, and Referring Navigable Regions (RNR)~\cite{Rufus_2021} predicts navigable road masks on static frames.
 
-Table~\ref{table:dataset_comparison} positions the datasets most relevant to outdoor language-guided driving.
+As shown in Table~\ref{table:dataset_comparison}, the datasets most relevant to outdoor language-guided driving differ sharply on dynamics, action space, and live evaluation.
 
 \begin{table}[ht]
 \centering
@@ -172,14 +170,14 @@ RNR~\cite{Rufus_2021} & Outdoor & Static frames & Region grounding & Navigable m
 CARLA-NAV (ours) & Outdoor & Dynamic traffic & Continuous (planner) & Navigable mask & Yes \\
 \bottomrule
 \end{tabular}
-\caption{Comparison of language-guided navigation and grounding datasets along axes relevant to outdoor autonomous driving. CARLA-NAV uniquely combines outdoor dynamic scenes, continuous control via a local planner, navigable-region masks, and live episode-level evaluation. Details of CARLA-NAV are given in Chapter~\ref{ch:dataset}.}
+\caption[Outdoor language-guided navigation datasets]{Comparison of language-guided navigation and grounding datasets along axes relevant to outdoor autonomous driving. CARLA-NAV (Contribution~\ref{contrib:dataset}) uniquely combines outdoor dynamic scenes, continuous control via a local planner, navigable-region masks, and live episode-level evaluation. Details are given in Chapter~\ref{ch:dataset}.}
 \label{table:dataset_comparison}
 \end{table}
 
 \subsection{Critical Comparison of Method Families}
 
 \paragraph{Nav-graph indoor VLN.}
-Sequence-to-sequence agents~\cite{anderson2018vision}, reinforced cross-modal matching~\cite{Wang_Huang_Celikyilmaz_Gao_Shen_Wang_Wang_Zhang_2019}, progress monitoring~\cite{Ma_Wu_AlRegib_Xiong_Kira_2019,ma2019selfmonitoring}, EnvDrop~\cite{tan2019learning}, and transformer policies such as VLN-BERT and HAMT~\cite{hong2021vln,chen2021hamt} achieve strong results when the environment is a known connectivity graph. What breaks outdoors is the assumption itself: a static nav-graph is unavailable for open roads, and graph hops cannot express fine parking or lane-placement manoeuvres. Krantz et al.~\cite{krantz2020beyond} further argue that nav-graph evaluation can inflate success by constraining the agent to oracle navigable nodes.
+Sequence-to-sequence agents~\cite{anderson2018vision}, reinforced cross-modal matching~\cite{Wang_Huang_Celikyilmaz_Gao_Shen_Wang_Wang_Zhang_2019}, progress monitoring~\cite{Ma_Wu_AlRegib_Xiong_Kira_2019,ma2019selfmonitoring}, EnvDrop~\cite{tan2019learning}, and transformer policies such as VLN-BERT and HAMT~\cite{hong2021vln,chen2021hamt} achieve strong results when the environment is a known connectivity graph. What breaks outdoors is the assumption itself: a static nav-graph is unavailable for open roads, and graph hops cannot express fine parking or lane-placement maneuvers. Krantz et al.~\cite{krantz2020beyond} further argue that nav-graph evaluation can inflate success by constraining the agent to oracle navigable nodes.
 
 \paragraph{Continuous indoor agents (VLN-CE).}
 VLN in continuous environments~\cite{krantz2020beyond,pashevich2021episodic,chen2022weakly} removes the graph but typically still targets indoor locomotion with low-level move/turn actions. They do not address multi-agent road traffic, vehicle-scale kinematics, or language that refers to parking slots between cars.
@@ -188,13 +186,13 @@ VLN in continuous environments~\cite{krantz2020beyond,pashevich2021episodic,chen
 Touchdown-style agents~\cite{Chen2019TOUCHDOWN,schumann-riezler-2022-analyzing,zhu-etal-2021-multimodal} operate on pre-recorded panoramas with a handful of actions. Vision can be surprisingly weak as a cue when route structure alone succeeds~\cite{hu2019you,schumann-riezler-2022-analyzing}. For driving, the discrete alphabet cannot represent ``park between the two cars,'' and offline panoramic hops are not live closed-loop control under dynamic agents.
 
 \paragraph{Object grounding in driving scenes.}
-Talk2Car~\cite{deruyttere2019talk2car} localises referred objects but does not answer which road region to drive to, and evaluation is offline. Object boxes are insufficient when the command denotes a free region rather than an entity.
+Talk2Car~\cite{deruyttere2019talk2car} localizes referred objects but does not answer which road region to drive to, and evaluation is offline. Object boxes are insufficient when the command denotes a free region rather than an entity.
 
 \paragraph{Static navigable-region grounding.}
-RNR~\cite{Rufus_2021} predicts a road mask for a command---the right output type for our setting---but assumes the referred region is visible in a single static frame from a pre-recorded video. It fails on deferred goals (``turn right once you see the signal''), lacks temporal and trajectory context, and is never validated on full live episodes.
+RNR~\cite{Rufus_2021} predicts a road mask for a command, the right output type for our setting, but assumes the referred region is visible in a single static frame from a pre-recorded video. It fails on deferred goals (``turn right once you see the signal''), lacks temporal and trajectory context, and is never validated on full live episodes.
 
 \paragraph{End-to-end driving with language.}
-CARLA language work such as Talk2Nav-style waypoint selection~\cite{sriram2019talk} and classical end-to-end driving~\cite{Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018,bojarski2016end} either restrict manoeuvre diversity or bury language in opaque control outputs. Modular and hybrid pipelines~\cite{Misra_Langford_Artzi_2017,fried2018speaker} improve interpretability but still need a grounding interface suited to continuous outdoor control.
+CARLA language work such as Talk2Nav-style waypoint selection~\cite{sriram2019talk} and classical end-to-end driving~\cite{Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018,bojarski2016end} either restrict maneuver diversity or bury language in opaque control outputs. Modular and hybrid pipelines~\cite{Misra_Langford_Artzi_2017,fried2018speaker} improve interpretability but still need a grounding interface suited to continuous outdoor control.
 
 \subsection{Research Gaps and Thesis Mapping}
 \label{sec:research_gaps}
@@ -203,18 +201,18 @@ The survey above leaves three concrete gaps, which map onto the research problem
 
 \begin{description}[style=nextline, leftmargin=1.5em, font=\normalfont\bfseries]
     \item[Gap A $\rightarrow$ Problem A] \textit{Deferred and partially observable goals.} Static grounding (RNR, Talk2Car) assumes the referent is in the current frame. Outdoor commands routinely refer to regions that are occluded or not yet visible. \textbf{Need:} intermediate navigable-region prediction over time.
-    \item[Gap B $\rightarrow$ Problem B] \textit{Action-space mismatch.} Nav-graph and Street View agents use discrete actions whose reachable set cannot express fine outdoor manoeuvres. \textbf{Need:} continuous control via grounded regions passed to a local planner.
+    \item[Gap B $\rightarrow$ Problem B] \textit{Action-space mismatch.} Nav-graph and Street View agents use discrete actions whose reachable set cannot express fine outdoor maneuvers. \textbf{Need:} continuous control via grounded regions passed to a local planner.
     \item[Gap C $\rightarrow$ Problem C] \textit{Missing temporal and progress context for live evaluation.} Offline frame scoring does not measure episode completion under dynamic traffic; single-image models lack multi-frame and trajectory context for multi-step commands. \textbf{Need:} multi-frame features, historical trajectory context, and live CARLA evaluation.
 \end{description}
 
-Chapters~\ref{ch:dataset} and~\ref{ch:vln} address these gaps with CARLA-NAV and a grounding-then-navigate network. Dense CLIP-based prediction~\cite{Rao_Zhao_Chen_Tang_Zhu_Huang_Zhou_Lu_2022,luddecke2022clipseg} supplies the representation; DUET-style coarse/fine reasoning~\cite{chen2022think} and language-aligned recovery ideas~\cite{Raychaudhuri2021Language} motivate keeping explicit progress context (our trajectory map), adapted here to outdoor driving rather than indoor graphs.
+Chapters~\ref{ch:dataset} and~\ref{ch:vln} address these gaps with CARLA-NAV and a grounding-first network. Dense CLIP-based prediction~\cite{Rao_Zhao_Chen_Tang_Zhu_Huang_Zhou_Lu_2022,luddecke2022clipseg} supplies the representation; DUET-style coarse/fine reasoning~\cite{chen2022think} and language-aligned recovery ideas~\cite{Raychaudhuri2021Language} motivate keeping explicit progress context (our trajectory map), adapted here to outdoor driving rather than indoor graphs.
 
 \section{Introduction to CARLA Simulator}
 
-CARLA (Car Learning to Act) is an open-source simulator for autonomous driving research~\cite{dosovitskiy2017carla}. It provides urban layouts, vehicles, pedestrians, configurable weather and sensors, and an API for controlling the simulation. A server--multi-client architecture supports scalable experiments. Sensors include cameras, LiDAR, depth, and GPS. Maps follow the OpenDRIVE standard; ScenarioRunner defines traffic situations; a ROS bridge is available. CARLA also ships baseline agents and supports record/replay for controlled comparisons.
+The gaps above require a simulator in which nav-graph and discrete Street View assumptions can be relaxed. CARLA (Car Learning to Act) is an open-source simulator for autonomous driving research~\cite{dosovitskiy2017carla}. It provides urban layouts, vehicles, pedestrians, configurable weather and sensors, and an API for controlling the simulation. A server--multi-client architecture supports scalable experiments. Sensors include cameras, LiDAR, depth, and GPS. Maps follow the OpenDRIVE standard; ScenarioRunner defines traffic situations; a ROS bridge is available. CARLA also ships baseline agents and supports record/replay for controlled comparisons.
 
 These properties make CARLA suitable for CARLA-NAV: we can spawn dynamic traffic, collect synchronized camera and pose data, project clicked navigable regions into masks, and later evaluate live navigation rather than only scoring pre-recorded frames.
 
 \section{Summary}
 
-This chapter reviewed autonomous navigation, the vision and language building blocks for grounding, and---critically---a taxonomy of VLN methods along environment representation, action space, supervision, fusion, and evaluation protocol (Table~\ref{table:method_taxonomy}). Dataset comparison (Table~\ref{table:dataset_comparison}) and the family-by-family critique show that prior work leaves deferred outdoor goals, continuous fine manoeuvres, and live dynamic evaluation under-addressed. Section~\ref{sec:research_gaps} maps those gaps to research problems A--C. CARLA provides the simulator in which the assumptions of nav-graphs and discrete Street View actions can be relaxed. Chapter~\ref{ch:dataset} introduces CARLA-NAV; Chapter~\ref{ch:vln} presents the formal grounding-first analysis, multi-task network, and live-navigation results.
+This chapter reviewed autonomous navigation, the vision and language building blocks for grounding, and critically a taxonomy of VLN methods along environment representation, action space, supervision, fusion, and evaluation protocol (Table~\ref{table:method_taxonomy}). Dataset comparison (Table~\ref{table:dataset_comparison}) and the family-by-family critique show that prior work leaves deferred outdoor goals, continuous fine maneuvers, and live dynamic evaluation under-addressed. Section~\ref{sec:research_gaps} maps those gaps to research problems A--C. CARLA provides the simulator in which the assumptions of nav-graphs and discrete Street View actions can be relaxed. Chapter~\ref{ch:dataset} introduces CARLA-NAV; Chapter~\ref{ch:vln} presents the formal grounding-first analysis, multi-task network, and live-navigation results.
