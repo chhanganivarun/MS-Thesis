@@ -125,24 +125,44 @@ The live-navigation rule evolved across project drafts, and documenting that evo
 
 Following prior VLN work~\cite{schumann-riezler-2022-analyzing,xiang-etal-2020-learning,Chen2019TOUCHDOWN}, we use \textbf{Task Completion (TC)} as the primary success metric: whether the agent successfully navigates to the goal location for a given language command. Importantly, TC in our evaluation is a \emph{human} judgement of episode success rather than an automatic geometric check; inter-rater agreement was not recorded. We additionally use \textbf{Fr\'{e}chet Distance}~\cite{eiter1994computing} and \textbf{normalized Dynamic Time Warping (nDTW)}~\cite{ilharco2019general} to compare the live predicted path with the ground-truth path.
 
-Fr\'{e}chet Distance and nDTW provide useful path-similarity signals, but they are not fully robust indicators of average navigation quality: a single early wrong turn can dominate the score, and a linguistic command may admit multiple valid trajectories (e.g., ``park near the blue dustbin''). Task Completion therefore remains the primary metric, with the caveat that it inherits subjectivity from human labelling.
+Fr\'{e}chet Distance and nDTW provide useful path-similarity signals, but they are not fully robust indicators of average navigation quality: a single early wrong turn can dominate the score, and a linguistic command may admit multiple valid trajectories (e.g., ``park near the blue dustbin''). Task Completion therefore remains the primary metric, with the caveat that it inherits subjectivity from human labelling. Section~\ref{sec:metric_validity} develops this construct-validity argument in full and motivates a reproducible goal-region success predicate (Section~\ref{sec:reproducible_tc}).
 
 Because live CARLA evaluation is stochastic under dynamic traffic, we also report Wilson score 95\% confidence intervals for TC (Table~\ref{table:tc_ci}), computed from the binomial success counts implied by the point estimates on $n_{\mathrm{val}}=25$ and $n_{\mathrm{test}}=34$ episodes. These intervals quantify sampling uncertainty of a single evaluation pass under a binomial model; they do \emph{not} capture annotator disagreement, and they are not a substitute for multi-seed re-runs (Section~\ref{sec:extended_eval}).
 
 \subsection{Displacement Metrics for Preliminary Models}
 \label{sec:disp_metrics}
 
-Before adopting CLIP and Task Completion, earlier model variants were evaluated with trajectory-displacement metrics that remain useful for stratified analysis. Let $A=(a_1,\ldots,a_{T_A})$ and $B=(b_1,\ldots,b_{T_B})$ be predicted and ground-truth trajectories in world coordinates.
+Before adopting CLIP and Task Completion, earlier model variants were evaluated with trajectory-displacement metrics that remain useful for stratified analysis. Let $A=(a_1,\ldots,a_{T_A})$ and $B=(b_1,\ldots,b_{T_B})$ be predicted and ground-truth trajectories in world coordinates (CARLA metres).
 
 \begin{itemize}
     \item \textbf{Final Displacement Error (FDE):} $L_2$ distance between the terminal points, $\|a_{T_A}-b_{T_B}\|_2$.
     \item \textbf{Average Displacement Error (ADE):} mean $L_2$ distance after resampling both paths to a common length $T$, $\frac{1}{T}\sum_{i=1}^{T}\|a_i-b_i\|_2$.
-    \item \textbf{ADE-Match:} because ADE requires equal-length trajectories, we define an original coupling-based variant analogous to discrete Fr\'{e}chet distance but with the \emph{mean} rather than the \emph{max} over the coupling. With continuous reparameterisations $\alpha,\beta:[0,1]\to[0,1]$,
+    \item \textbf{ADE-Match:} because ADE requires equal-length trajectories, the preliminary evaluation used a coupling-based variant that replaces the Fr\'{e}chet supremum with a mean over the coupling. With continuous reparameterisations $\alpha,\beta:[0,1]\to[0,1]$,
     \[
     \mathrm{ADE{-}Match}(A,B)=\inf_{\alpha,\beta}\;\underset{t\in[0,1]}{\mathrm{mean}}\; d\bigl(A(\alpha(t)),B(\beta(t))\bigr).
     \]
-    This metric was developed during the preliminary evaluation and is reported here for the ViT/Conv3D lineage (Section~\ref{sec:prelim_arch}).
+    This quantity is closely related to the \emph{average} (integral) Fr\'{e}chet distance introduced by Buchin~\cite{buchin2007frechet} and studied algorithmically by Maheshwari et al.~\cite{maheshwari2015integral}: the standard formulation integrates distances with respect to \emph{arc length} and normalises by curve length. The uniform-in-$t$ infimum above is degenerate---a monotone reparameterisation can linger near one point of $B$ for almost the whole interval and sweep the remainder over vanishing measure, so a stalled agent can approach zero. We report ADE-Match as computed in the preliminary ViT/Conv3D evaluation (Section~\ref{sec:prelim_arch}) and interpret it with that caveat.
 \end{itemize}
+
+\subsection{Construct Validity: Why Task Completion Is Primary}
+\label{sec:metric_validity}
+
+A language command $C$ does not designate a single trajectory. It designates a \emph{set} $\Phi(C)$ of trajectories that satisfy the command. The recorded demonstration $\tau^\star$ is one sample from $\Phi(C)$, chosen by the annotator on that day. Any distance $d(\hat{\tau},\tau^\star)$ is a valid measure of correctness only if small distance is equivalent to membership in $\Phi(C)$. For referential outdoor commands that equivalence fails in both directions, which is why the thesis promotes Task Completion over the displacement suite as the primary verdict.
+
+\paragraph{Two error directions.}
+\begin{enumerate}
+    \item \textbf{Right path, wrong endpoint.} An agent may track the road closely and still stop short of, or beyond, the referred goal. ADE dilutes that terminal error by averaging it against a well-tracked prefix; ADE-Match dilutes it further under the degenerate coupling above. FDE captures the endpoint, but ignores whether intermediate constraints were met. The preliminary Conv3D numbers make this concrete (Section~\ref{sec:prelim_arch}): Fr\'{e}chet and FDE means nearly coincide ($17.84$ vs.\ $17.83\,\mathrm{m}$), so the Fr\'{e}chet supremum is attained at the terminal point in essentially every episode---the modal failure is right-path/wrong-endpoint.
+    \item \textbf{Wrong path, right endpoint.} Under live traffic the agent must yield, wait, or steer around vehicles absent from the demonstration. Such reactive detours are valid members of $\Phi(C)$ yet are penalised by ADE, Fr\'{e}chet, and nDTW. Conversely, a route that reaches a nearby pose without executing a required turn can score well on FDE while failing the command.
+\end{enumerate}
+
+\paragraph{Per-metric verdicts.}
+ADE is not reparameterisation-invariant: it requires an index correspondence after resampling, so two agents driving the same path at different speeds receive different scores, even though the command never specifies speed. FDE checks only the terminal point and is silent on path constraints and legality (crossing a footpath or a red light can still yield zero FDE). Classical Fr\'{e}chet distance has the right invariance and detects worst-case excursions, but it is unbounded and sup-driven: aggregate means are set by a minority of catastrophic episodes, and mean versus median rankings can diverge (Section~\ref{sec:prelim_arch}). ADE-Match, as implemented, is optimistically biased by the uniform-in-$t$ degeneracy noted above. Pointing Game and Recall@$k$, used in earlier drafts for open-loop mask quality, measure a signal the closed-loop controller mostly discards---only the centroid of the largest connected component reaches the planner.
+
+\paragraph{Closed-loop correspondence and noise floors.}
+After the first divergence from $\tau^\star$, the agent occupies states the demonstration never visited. Subsequent ADE terms compare $\hat{\tau}$ to a counterfactual that no longer applies---the same distribution-shift phenomenon that motivates iterative imitation learning~\cite{ross2011dagger}, applied here to evaluation rather than training. A goal predicate evaluated on the final state remains well defined regardless of how far the agent strayed. Two unmeasured noise floors further limit absolute interpretation of displacement scores: (i)~demonstration and rollout share the same rule-based local planner, so much of the measured displacement is click-placement variance within the navigable region rather than model error; (ii)~live traffic differs from the recorded realisation, adding an irreducible stochastic term that no better model can remove.
+
+\paragraph{What Task Completion costs.}
+TC survives because success under a referential command is a predicate, and only a predicate can express membership in $\Phi(C)$. It is bounded, approximately binomial (hence Wilson intervals in Table~\ref{table:tc_ci}), and comparable to outdoor-VLN literature~\cite{schumann-riezler-2022-analyzing,xiang-etal-2020-learning,Chen2019TOUCHDOWN}. Fr\'{e}chet Distance and nDTW are retained as diagnostics rather than verdicts: both have reparameterisation invariance, and nDTW is normalised to $[0,1]$. The honest caveat is that human TC, as used in the ICRA protocol, \emph{delegates} $\Phi(C)$ to a judge without recorded inter-rater agreement (Section~\ref{sec:eval_metrics}). The construct problem was relocated into the annotator, not solved. Section~\ref{sec:reproducible_tc} specifies a reproducible geometric success predicate that restores objectivity while still respecting multiple valid paths.
 
 \section{Experimental Results}
 
@@ -266,7 +286,7 @@ The multi-frame predecessor (Figure~\ref{fig:conv3d_model}) uses an X3D backbone
 \paragraph{Why CLIP.}
 Moving to CLIP replaces the separate X3D/ViT visual encoder and GloVe+LSTM language stack with a single jointly pretrained image--text embedding space, which simplifies the architecture and improves multimodal alignment on the small CARLA-NAV corpus. The CLIP-MC results above are the published outcome of that migration; the ViT/Conv3D numbers below document the prior art within this project.
 
-Table~\ref{table:conv3d_vit} compares Conv3D and ViT on Fr\'{e}chet Distance, FDE, ADE, and ADE-Match (mean / median / STD). Conv3D is consistently better. Critically, the standard deviation often exceeds the mean (e.g., Conv3D Fr\'{e}chet mean $17.84$ with STD $21.49$; median $9.10$), and ViT is even more heavy-tailed (mean $43.95$, STD $60.56$, median $12.19$). Path-metric means are therefore dominated by a minority of catastrophic episodes.
+Table~\ref{table:conv3d_vit} compares Conv3D and ViT on Fr\'{e}chet Distance, FDE, ADE, and ADE-Match (mean / median / STD; metres). Conv3D is consistently better. Critically, the standard deviation often exceeds the mean (e.g., Conv3D Fr\'{e}chet mean $17.84$ with STD $21.49$; median $9.10$), and ViT is even more heavy-tailed (mean $43.95$, STD $60.56$, median $12.19$). Path-metric means are therefore dominated by a minority of catastrophic episodes. Two further observations support the construct-validity critique in Section~\ref{sec:metric_validity}: (i)~Conv3D Fr\'{e}chet and FDE nearly coincide (means $17.84$ vs.\ $17.83$; identical medians $9.10$), so the Fr\'{e}chet supremum is attained at the endpoint---the modal failure is right-path/wrong-endpoint, which ADE ($10.32$) dilutes and ADE-Match ($4.73$) hides; (ii)~over the same episodes, FDE median $9.10\,\mathrm{m}$ and ADE-Match median $1.26\,\mathrm{m}$ cannot both be faithful summaries of median quality, underscoring internal inconsistency of the displacement suite.
 
 \begin{table}[ht]
 \begin{center}
@@ -281,12 +301,12 @@ ADE & 10.32 & 6.61 & 11.04 & 22.50 & 7.50 & 34.00 \\
 ADE-Match & 4.73 & 1.26 & 8.51 & 16.43 & 2.50 & 31.23 \\ \hline
 \end{tabular}
 \end{center}
-\caption{Preliminary live-navigation results for Conv3D (X3D) vs.\ ViT on the earlier evaluation pool. ADE values follow the regenerated evaluation tables. Lower is better for all metrics.}
+\caption{Preliminary live-navigation results for Conv3D (X3D) vs.\ ViT on the earlier evaluation pool. All values are CARLA world-frame metres. ADE values follow the regenerated evaluation tables. Lower is better for all metrics.}
 \label{table:conv3d_vit}
 \end{table}
 
 \paragraph{Stratified ablations.}
-Tables~\ref{table:cmd_type}--\ref{table:subcommand} break the same evaluation down by command type, primary action verb, referred target type, and subcommand count. Across strata, Conv3D remains stronger and more stable than ViT. Two qualitative patterns emerge: (i)~stopping-based commands are harder than turning-based ones for ViT (Fr\'{e}chet mean $53.98$ vs.\ $36.42$), while Conv3D is comparatively flat across both; (ii)~two-subcommand episodes yield lower Conv3D errors than single-subcommand ones (ADE $6.43$ vs.\ $12.13$), consistent with intermediate clicks providing denser supervision. These stratified tables satisfy, for the ViT/Conv3D lineage, the per-manoeuvre breakdown that remains open for the CLIP family (Section~\ref{sec:extended_eval}).
+Tables~\ref{table:cmd_type}--\ref{table:subcommand} break the same evaluation down by command type, primary action verb, referred target type, and subcommand count (metres). Across strata, Conv3D remains stronger and more stable than ViT. Two qualitative patterns emerge: (i)~stopping-based commands are harder than turning-based ones for ViT (Fr\'{e}chet mean $53.98$ vs.\ $36.42$), while Conv3D is comparatively flat across both; (ii)~two-subcommand episodes yield lower Conv3D errors than single-subcommand ones (ADE $6.43$ vs.\ $12.13$), consistent with intermediate clicks providing denser supervision. These stratified tables satisfy, for the ViT/Conv3D lineage, the per-manoeuvre breakdown that remains open for the CLIP family (Section~\ref{sec:extended_eval}). Cross-stratum comparisons should nevertheless be read cautiously: success predicates differ by command class---endpoint-based for park/stop, state-based for lane change, sequence-based for multi-step---so a single displacement metric does not denote the same notion of difficulty in every row, and Fr\'{e}chet$\approx$FDE again holds in the turning stratum (both $17.97\,\mathrm{m}$ for Conv3D).
 
 \begin{table}[ht]
 \begin{center}
@@ -305,7 +325,7 @@ Tables~\ref{table:cmd_type}--\ref{table:subcommand} break the same evaluation do
  & Fr\'{e}chet & 17.97 & 6.97 & 21.37 & 36.42 & 16.68 & 41.00 \\ \hline
 \end{tabular}
 \end{center}
-\caption{Conv3D vs.\ ViT stratified by command type (stopping-based vs.\ turning-based).}
+\caption{Conv3D vs.\ ViT stratified by command type (stopping-based vs.\ turning-based). All displacement values are CARLA world-frame metres.}
 \label{table:cmd_type}
 \end{table}
 
@@ -332,7 +352,7 @@ Tables~\ref{table:cmd_type}--\ref{table:subcommand} break the same evaluation do
  & Fr\'{e}chet & 18.49 & 7.03 & 28.67 & 41.97 & 8.42 & 73.67 \\ \hline
 \end{tabular}
 \end{center}
-\caption{Conv3D vs.\ ViT stratified by primary action verb (ADE and Fr\'{e}chet). Full FDE/ADE-Match tables follow the same ranking and are omitted for space.}
+\caption{Conv3D vs.\ ViT stratified by primary action verb (ADE and Fr\'{e}chet; metres). Full FDE/ADE-Match tables follow the same ranking and are omitted for space.}
 \label{table:action_type}
 \end{table}
 
@@ -357,7 +377,7 @@ Tables~\ref{table:cmd_type}--\ref{table:subcommand} break the same evaluation do
  & Fr\'{e}chet & 25.48 & 13.31 & 34.69 & 47.48 & 22.17 & 45.58 \\ \hline
 \end{tabular}
 \end{center}
-\caption{Conv3D vs.\ ViT stratified by referred target type.}
+\caption{Conv3D vs.\ ViT stratified by referred target type. All displacement values are CARLA world-frame metres.}
 \label{table:target_type}
 \end{table}
 
@@ -378,7 +398,7 @@ Tables~\ref{table:cmd_type}--\ref{table:subcommand} break the same evaluation do
  & Fr\'{e}chet & 9.64 & 7.50 & 8.65 & 38.91 & 9.11 & 65.90 \\ \hline
 \end{tabular}
 \end{center}
-\caption{Conv3D vs.\ ViT stratified by number of subcommands.}
+\caption{Conv3D vs.\ ViT stratified by number of subcommands. All displacement values are CARLA world-frame metres.}
 \label{table:subcommand}
 \end{table}
 
@@ -458,6 +478,22 @@ Task Completion records goal arrival but not \emph{how} the vehicle drove. We th
 
 An episode may count as Task Completion success yet still be unacceptable under these rates. Infractions were not logged in the original ICRA runs; subsequent live evaluation should report them alongside TC.
 
+\subsection{Reproducible Goal-Region Success Predicate}
+\label{sec:reproducible_tc}
+
+Human TC relocates the construct problem into the annotator (Section~\ref{sec:metric_validity}). CARLA-NAV already stores annotated final and intermediate navigable regions, so success can be redefined as a reproducible geometric predicate that still admits multiple valid paths:
+
+\begin{enumerate}
+    \item \textbf{Goal arrival:} the final vehicle pose lies within radius $r$ of the annotated final navigable region (equivalently, within the region or its $r$-dilation in world coordinates).
+    \item \textbf{Subcommand constraints:} for multi-step commands, the trajectory visits each annotated intermediate navigable region (again up to radius $r$) in order.
+    \item \textbf{Legality:} the episode incurs zero collisions and zero red-light infractions under the CARLA sensors listed above; lane invasions may be reported separately rather than hard-failed, depending on the manoeuvre class.
+\end{enumerate}
+
+An episode succeeds only if all three hold. The radius $r$ should be chosen on a held-out calibration set and reported; a natural default is on the order of the final-region diameter used during annotation. This predicate answers both halves of the right-path/wrong-endpoint dichotomy: the endpoint is checked against the annotated goal set rather than a single demonstration pose, and intermediate regions encode the path constraints that FDE alone misses.
+
+\paragraph{Calibration experiments.}
+Two measurements are needed before displacement scores or geometric TC can be interpreted absolutely: (i)~an \emph{annotation noise floor}---re-collect a subset of episodes with a second navigator and report ADE/FDE between the two human trajectories under matched traffic seeds, estimating click-placement variance; (ii)~a \emph{traffic stochasticity floor}---roll out a fixed checkpoint repeatedly from the same spawn with resampled traffic and report the dispersion of path metrics and geometric TC. Neither was measured in the ICRA runs; both belong in any follow-up that claims absolute navigation quality.
+
 \subsection{Trajectory-Head Ablation, Per-Manoeuvre Breakdown, and Runtime}
 
 \begin{itemize}
@@ -472,4 +508,4 @@ Language-guided driving systems can fail silently under referential ambiguity, d
 
 \section{Chapter Summary}
 
-We reformulated RNR for dynamic outdoor VLN, motivated the grounding-first design formally, introduced a multi-task network with CLIP features, multi-frame context, and historical trajectory, and demonstrated live navigation in CARLA. We also documented the preliminary ViT and Conv3D architectures and their stratified displacement results. Quantitative CLIP results show that CLIP-MC outperforms single-frame and non-contextual baselines on Task Completion, Fr\'{e}chet Distance, and nDTW, with Wilson intervals, human-TC disclosure, path-metric dispersion caveats, and the extended evaluation protocol clarifying the statistical and safety limits of those gains. The next chapter concludes the thesis and outlines future work.
+We reformulated RNR for dynamic outdoor VLN, motivated the grounding-first design formally, introduced a multi-task network with CLIP features, multi-frame context, and historical trajectory, and demonstrated live navigation in CARLA. We also documented the preliminary ViT and Conv3D architectures and their stratified displacement results, and argued that Task Completion---not ADE/FDE/ADE-Match---is the appropriate primary metric because language commands specify sets of valid trajectories rather than a single demonstration path. Quantitative CLIP results show that CLIP-MC outperforms single-frame and non-contextual baselines on Task Completion, Fr\'{e}chet Distance, and nDTW, with Wilson intervals, human-TC disclosure, path-metric dispersion caveats, and the extended evaluation protocol clarifying the statistical and safety limits of those gains. The next chapter concludes the thesis and outlines future work.
