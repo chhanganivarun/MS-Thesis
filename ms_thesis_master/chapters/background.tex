@@ -1,260 +1,227 @@
-In this chapter, we delve into the foundational concepts and methodologies that underpin our research. We begin with an introduction to autonomous navigation, exploring its key techniques and applications, particularly in the context of self-driving cars. We then discuss the concept of visual-language navigation, which combines visual perception and natural language understanding to guide navigation based on linguistic instructions.
-
-We further explore the role of deep learning in visual-language navigation, focusing on the use of Convolutional Neural Networks (CNNs) and Recurrent Neural Networks (RNNs) for image and language processing, respectively. We also discuss the concept of visual-language embeddings, which enable the correlation of visual and linguistic data in a common semantic space.
-
-Next, we review the existing datasets and benchmarks in the field of visual-language navigation, discussing their characteristics, strengths, and limitations. We also examine the existing methods for visual-language navigation, including both single-image methods and video-based methods.
-
-Finally, we discuss the challenges and limitations of the existing methods, which motivate the need for our research. We conclude the chapter with a summary of the key points and their implications for our research.
+In this chapter, we review the foundational concepts that underpin the rest of the thesis. We begin with autonomous navigation as it relates to self-driving vehicles, then cover the computer vision and natural language processing building blocks needed for language-guided driving. We discuss visual--language embeddings, focusing on Contrastive Language--Image Pretraining (CLIP), and survey Vision-and-Language Navigation (VLN) datasets and methods. We close with the CARLA simulator and a summary that connects this background to Chapters~\ref{ch:dataset} and~\ref{ch:vln}.
 
 \begin{figure}[ht]
     \centering
-    \fbox{\parbox{0.92\textwidth}{\centering\vspace{1.2em}
-    \textbf{VLN task setup (schematic)}\\[0.6em]
-    Language command $+$ front-camera frames $+$ past trajectory\\
-    $\rightarrow$ navigable-region mask $\rightarrow$ local planner $\rightarrow$ vehicle controls\\[0.4em]
-    {\small\textit{Placeholder schematic --- replace with a drawn figure if desired.}}
-    \vspace{1.2em}}}
+    \begin{tikzpicture}[
+        node distance=0.55cm and 0.7cm,
+        box/.style={draw, rounded corners, align=center, minimum height=0.85cm, minimum width=2.1cm, font=\small},
+        arr/.style={-{Stealth}, thick}
+    ]
+        \node[box] (lang) {Language\\command};
+        \node[box, right=of lang] (frames) {Camera\\frames};
+        \node[box, right=of frames] (traj) {Past\\trajectory};
+        \node[box, below=1.1cm of frames] (net) {Grounding\\network};
+        \node[box, below=of net] (mask) {Navigable\\region mask};
+        \node[box, below=of mask] (planner) {Local\\planner};
+        \node[box, below=of planner] (ctrl) {Vehicle\\controls};
+        \draw[arr] (lang) -- (net);
+        \draw[arr] (frames) -- (net);
+        \draw[arr] (traj) -- (net);
+        \draw[arr] (net) -- (mask);
+        \draw[arr] (mask) -- (planner);
+        \draw[arr] (planner) -- (ctrl);
+    \end{tikzpicture}
     \caption{High-level Vision-and-Language Navigation (VLN) setup considered in this thesis: a language command and visual observations are grounded into a navigable region, which a local planner executes in continuous action space.}
     \label{fig:vln_setup_schematic}
 \end{figure}
 
 \section{Introduction to Autonomous Navigation}
 
-Autonomous navigation is the science of enabling a robot or a vehicle to move and navigate in its environment autonomously\cite{Thrun2005}. This capability is fundamental to a wide range of applications, from self-driving cars and delivery drones to robotic vacuum cleaners and Mars rovers\cite{Siegwart2011, Siciliano2016}. The process of autonomous navigation involves several interconnected steps: perception, localization, mapping, path planning, and control\cite{Latombe1991}.
+Autonomous navigation is the science of enabling a robot or a vehicle to move through its environment without continuous human control~\cite{Thrun2005}. It is fundamental to self-driving cars, delivery robots, and related systems~\cite{Siegwart2011, Siciliano2016}. The classical pipeline comprises several interconnected stages: perception, localization, mapping, path planning, and control~\cite{Latombe1991}.
 
-The importance of autonomous navigation is multi-faceted and spans across various domains. Here are a few reasons why it is considered important:
+For road vehicles, the importance of autonomous navigation can be summarised as follows:
 
 \begin{enumerate}
-\item  \textbf{Long-Endurance Missions:} Autonomous navigation is critical for long-endurance missions, particularly in the context of autonomous underwater vehicles (AUVs). These vehicles require simple and effective on-board navigation solutions to undertake long-range missions, operating for months rather than hours or days, without reliance on external support systems\cite{Salavasidis2019}.
-
-\item \textbf{Efficiency and Safety in Shipping Industry:} Autonomous ships are expected to shape the future of the global shipping industry. The use of autonomous navigation in these ships can improve efficiency and safety, reducing the risk of human error. However, this also raises serious issues about compliance with international regulations\cite{Zhou2020}.
-
-\item \textbf{Real-Time Performance:} Autonomous navigation can improve the real-time performance of self-driving cars. Efficient techniques for optimizing the position of a sequence of maps along a journey can help in achieving robust and real-time autonomous navigation\cite{Dominguez2015}.
-
-\item \textbf{Co-existence with Humans:} Autonomous navigation is crucial for the widespread adoption of autonomous vehicles. Solutions that enable these intelligent agents to co-exist with humans, safely and efficiently interacting with human-driven vehicles, are necessary. This includes both conflictive and competitive scenarios\cite{Toghi2021}.
-
-\item \textbf{Research and Development:} Autonomous navigation is a vibrant field of research, with ongoing efforts to develop new methods and improve existing ones. The challenges and limitations of current approaches motivate the need for further research and innovation.
+\item \textbf{Safety and efficiency:} Reducing human error while improving traffic flow and mobility~\cite{Toghi2021}.
+\item \textbf{Real-time operation:} Perception and planning must run at rates compatible with driving dynamics~\cite{Dominguez2015}.
+\item \textbf{Coexistence with humans:} Agents must interact safely with human-driven vehicles, pedestrians, and cyclists in mixed traffic~\cite{Toghi2021}.
+\item \textbf{Open research problems:} Dynamic scenes, language-conditioned goals, and continuous control remain active research areas that motivate the work in this thesis.
 \end{enumerate}
 
-Thus, autonomous navigation is a key technology that has the potential to revolutionize various sectors, from transportation to exploration, and holds promise for a future where machines can navigate the world as efficiently and effectively as humans.
+\textbf{Perception} uses sensors such as cameras, LiDAR, radar, and ultrasonics to observe the environment~\cite{Borenstein1996,Siegwart2011}.
+\textbf{Localization} estimates the vehicle's pose within that environment~\cite{Thrun2005}, using odometry, inertial measurement units (IMUs), GPS, or Simultaneous Localization and Mapping (SLAM)~\cite{DurrantWhyte2006}.
+\textbf{Mapping} builds a representation of the surroundings---from a simple 2D occupancy grid to a rich 3D map---for planning and obstacle avoidance~\cite{Thrun2002,Elfes1989}.
+\textbf{Path planning} computes a route from the current pose to a goal while accounting for obstacles~\cite{LaValle2006,Kavraki1996}.
+\textbf{Control} executes the plan by issuing actuator commands and correcting deviations from feedback~\cite{Siciliano2010}.
 
-\textbf{Perception} is the first step in autonomous navigation. Robots use various sensors to perceive their environment. These sensors can include cameras, LiDAR (Light Detection and Ranging), radar, ultrasonic sensors, and more\cite{Borenstein1996}. The choice of sensors depends on the specific requirements of the task and the environment in which the robot operates\cite{Siegwart2011}.
-
-\textbf{Localization} is the process of determining the robot's position within its environment\cite{Thrun2005}. There are several methods for localization, including odometry, inertial measurement units (IMUs), GPS, and more complex techniques like Simultaneous Localization and Mapping (SLAM)\cite{DurrantWhyte2006}.
-
-\textbf{Mapping} involves creating a representation of the environment. This can be a simple 2D grid map or a more complex 3D map\cite{Thrun2002}. The map is used for path planning and navigation. It can also be used for tasks like object recognition and obstacle avoidance\cite{Elfes1989}.
-
-\textbf{Path Planning} is the process of determining a path from the robot's current position to its destination\cite{LaValle2006}. Path planning algorithms take into account the robot's current position, its destination, and the location of obstacles in the environment\cite{Kavraki1996}.
-
-\textbf{Control} involves executing the planned path, adjusting the robot's movements as necessary based on its perception of the environment\cite{Siciliano2010}.
-
-There are several approaches to autonomous navigation, each with its own strengths and weaknesses:
+Common navigation paradigms include:
 
 \begin{itemize}
-    \item \textbf{Reactive Navigation} methods involve the robot reacting to its environment in real-time, without the need for a global map\cite{Arkin1998}. These methods are fast and can handle dynamic environments, but they may not always find the most efficient path\cite{Braitenberg1986}.
-
-    \item \textbf{Map-Based Navigation} methods involve the robot using a global map of the environment to plan its path\cite{Thrun2005}. These methods can find efficient paths, but they require an accurate map and can struggle with dynamic environments\cite{Elfes1989}.
-
-    \item \textbf{Simultaneous Localization And Mapping} (SLAM) is a concept that involves localizing a mobile robot in an unknown environment while simultaneously estimating the environment map in terms of observed environment landmarks\cite{DurrantWhyte2006}. SLAM solutions can be categorized into two broad classes: filtering (online SLAM) and smoothing (full SLAM) methods\cite{Thrun2004}. Smoothing approaches rely on least-square optimization to estimate the robot's full trajectory using all of the sensor measurements collected so far. On the other hand, online approaches have lower memory consumption but at the cost of decreased accuracy compared to the full SLAM approaches\cite{Leonard1991}. SLAM methods can also be categorized based on the sensor(s) they use for collecting observations from the environment. Methods that use range sensors as their source of observation and methods that use camera sensors are called LiDAR SLAM and visual SLAM, respectively\cite{Zhang2014}.
+    \item \textbf{Reactive navigation:} real-time responses without a global map~\cite{Arkin1998,Braitenberg1986}; fast in dynamic scenes, but not always globally efficient.
+    \item \textbf{Map-based navigation:} planning on a known map~\cite{Thrun2005,Elfes1989}; efficient when the map is accurate, brittle when the world changes.
+    \item \textbf{SLAM:} jointly estimating pose and map in an unknown environment~\cite{DurrantWhyte2006,Thrun2004,Leonard1991}, with LiDAR-based and visual variants~\cite{Zhang2014}.
 \end{itemize}
 
-Each of these approaches has its own set of challenges and limitations, and there is ongoing research to develop new methods and improve existing ones. The choice of approach depends on the specific requirements of the task and the characteristics of the environment.
-
+In this thesis, the local planner plays the role of path planning and control, while our contribution focuses on perception and language understanding: predicting which road region the vehicle should drive toward given a linguistic command (Figure~\ref{fig:vln_setup_schematic}).
 
 \section{Basics of Computer Vision}
 
-Computer vision is a field that involves methods for acquiring, processing, analyzing, and understanding digital images. It aims to extract high-dimensional data from the real world to produce numerical or symbolic information that can be used to make decisions. This process involves transforming visual images into descriptions of the world that can be understood by thought processes and can elicit appropriate action. Using digital images from cameras and videos and deep learning models, machines can accurately identify and classify objects - and then react to what they "see"\cite{Szeliski2010}. This understanding is achieved by disentangling symbolic information from image data using models constructed with the aid of geometry, physics, statistics, and learning theory.
-
-The scientific discipline of computer vision is concerned with the theory behind artificial systems that extract information from images. The image data can take many forms, such as video sequences, views from multiple cameras, multi-dimensional data from a 3D scanner, 3D point clouds from LiDAR sensors, or medical scanning devices. The technological discipline of computer vision seeks to apply its theories and models to the construction of computer vision systems.
-
-Sub-domains of computer vision include scene reconstruction, object detection, event detection, video tracking, object recognition, 3D pose estimation, learning, indexing, motion estimation, visual servoing, 3D scene modeling, and image restoration.
-
-Computer vision is an interdisciplinary field that deals with how computers can be made to gain high-level understanding from digital images or videos. From the perspective of engineering, it seeks to automate tasks that the human visual system can do. "Computer vision is concerned with the automatic extraction, analysis, and understanding of useful information from a single image or a sequence of images. It involves the development of a theoretical and algorithmic basis to achieve automatic visual understanding."
-
-In the context of autonomous navigation, computer vision plays a pivotal role. It allows an autonomous system to perceive its environment, recognize objects or features, and make decisions based on this information. For instance, in self-driving cars, computer vision techniques are used to detect lanes, identify other vehicles, pedestrians, and signs, and understand traffic signals.\cite{Chen2015}
+Computer vision develops methods for acquiring, processing, and interpreting digital images so that machines can extract information useful for decisions~\cite{Szeliski2010}. Image data may come from single cameras, multi-camera rigs, RGB-D sensors, or LiDAR. Sub-domains include object detection, semantic segmentation, tracking, reconstruction, and related tasks. In autonomous driving, vision is used to detect lanes, vehicles, pedestrians, and traffic signals, and to understand the road scene~\cite{Chen2015}.
 
 \subsection{Basic Methods in Computer Vision}
-There are several basic methods in computer vision that are particularly relevant to autonomous navigation:
+
+Methods especially relevant to language-guided driving include:
+
 \begin{itemize}
-    \item \textbf{Object Detection:} This involves identifying a specific object in an image or video. For example, a self-driving car might use object detection algorithms to identify other vehicles, pedestrians, and traffic signs\cite{redmon2016you}.
-    \item \textbf{Image Segmentation:} This is the process of partitioning a digital image into multiple segments to simplify the image into something that is more meaningful and easier to analyze\cite{Chinki2012kmeans}. In autonomous navigation, image segmentation can be used to differentiate the road from the sidewalk, or to identify different lanes on a highway\cite{cordts2016cityscapes}.
-    \item \textbf{Semantic Segmentation:} This involves classifying each pixel in an image to a specific class, providing a comprehensive understanding of the scene. It's particularly useful in autonomous navigation for understanding road scenes, such as identifying drivable paths, pedestrians, vehicles, etc\cite{badrinarayanan2017segnet}.
+    \item \textbf{Object Detection:} localising specific objects such as vehicles, pedestrians, and signs~\cite{redmon2016you,Ren2017Faster}.
+    \item \textbf{Image Segmentation:} partitioning an image into regions that are easier to analyse~\cite{Chinki2012kmeans}, e.g.\ road versus sidewalk~\cite{cordts2016cityscapes}.
+    \item \textbf{Semantic Segmentation:} assigning a class label to every pixel, which is useful for identifying drivable surface, pedestrians, and vehicles~\cite{badrinarayanan2017segnet}.
 \end{itemize}
 
+Our approach treats navigable-region prediction as a dense segmentation problem: the network outputs a pixel-level mask of the region to drive toward, rather than a discrete action or a bounding box around a referred object.
+
 \subsection{Vision Encoders in Autonomous Navigation}
-Different vision encoders have been used in the field of autonomous navigation. For instance, Convolutional Neural Networks (CNNs) have been widely used for image recognition tasks, including object detection and segmentation\cite{Krizhevsky2017ImageNet}. Variants of CNNs, such as ResNets\cite{He2016Deep}, DenseNets\cite{Huang2017Densely}, and EfficientNets\cite{tan2019efficientnet}, have been employed to extract features from visual data in autonomous navigation tasks.
 
-There are several types of vision encoders that have been used in autonomous navigation tasks. For example, the VGG-16 model, which is a deep CNN with 16 layers, has been used for object detection in autonomous vehicles\cite{simonyan2014very}. The ResNet model, which introduces the concept of residual learning, has been used for semantic segmentation tasks\cite{He2016Deep}.
+Convolutional Neural Networks (CNNs) are widely used for visual recognition~\cite{Krizhevsky2017ImageNet}, including ResNets~\cite{He2016Deep}, DenseNets~\cite{Huang2017Densely}, EfficientNets~\cite{tan2019efficientnet}, and VGG-style backbones~\cite{simonyan2014very}. In VLN, such encoders are often paired with language models such as Long Short-Term Memory (LSTM) networks~\cite{Hochreiter1997Long} to follow instructions~\cite{anderson2018vision}. Vision Transformers (ViTs) treat an image as a sequence of patches and apply self-attention for more global context~\cite{dosovitskiy2020image,vaswani2017attention}.
 
-In the realm of end-to-end navigation, models like ResNet-152\cite{He2016Deep} and VGG-16\cite{simonyan2014very} have been used as vision encoders in combination with language encoders like LSTMs\cite{Hochreiter1997Long} to understand and follow navigation instructions in indoor environments\cite{anderson2018vision}. Another example is the Faster R-CNN model, which is designed for real-time object detection. It introduces a Region Proposal Network (RPN) that shares full-image convolutional features with the detection network, enabling nearly cost-free region proposals\cite{Ren2017Faster}.
-More recently, transformers, which were initially designed for natural language processing tasks, have been adapted for computer vision tasks. Vision Transformers (ViT)\cite{dosovitskiy2020image} treat an image as a sequence of patches and apply transformer models to this sequence, allowing for more global understanding of the image. This approach has been used in autonomous navigation tasks, providing promising results\cite{vaswani2017attention}.
+Krantz et al.~\cite{krantz2020beyond}, in \textit{Beyond the Nav-Graph: Vision-and-Language Navigation in Continuous Environments}, use a ResNet-50 visual encoder and argue that discrete navigation-graph assumptions can inflate reported performance. Controllable Imitative Reinforcement Learning (CIRL) similarly relies on vision encoders to learn driving policies from visual input~\cite{Liang2018CIRL}. Imaging laser radars have also been studied as complementary sensors for robotics perception~\cite{Hebert3}.
 
-In the context of the paper "Vision-and-Language Navigation in Continuous Spaces"\cite{krantz2020beyond}, the authors use a ResNet-50 model as a vision encoder to extract visual features from images. These features are then used in combination with language features to predict navigable regions and perform navigation tasks.
-One of the key applications of vision encoders in autonomous navigation is in the field of laser radars, also known as Lidar systems. These systems use laser beams to measure distances and can generate 3D representations of the environment, which are crucial for autonomous navigation. The data from these systems are processed using vision encoders to identify key features and obstacles in the environment. For example, in a study by Martial Hebert, imaging laser radars were used in the context of computer vision and robotics to develop measurement models and identify key problems that affect measurements from these sensors\cite{Hebert3}.
-In another study by Xiaodan Liang et al., a Controllable Imitative Reinforcement Learning (CIRL) approach was used for autonomous urban driving navigation. The CIRL approach uses vision encoders to process visual inputs and generate driving policies. The vision encoders help in learning an optimal driving policy by exploring a reasonably constrained action space guided by encoded experiences that imitate human demonstrations\cite{Liang2018CIRL}.
-These studies highlight the importance of vision encoders in autonomous navigation tasks. They help in processing visual data, identifying key features, and making informed decisions, which are crucial for safe and efficient autonomous navigation.
-
+For this thesis, the key takeaway is that strong visual features---and especially features that can be aligned with language---are a prerequisite for grounding navigable regions. Chapter~\ref{ch:vln} therefore uses CLIP visual features rather than a purely vision-only CNN backbone.
 
 \section{Basics of Natural Language Processing}
-Natural Language Processing (NLP) is a subfield of artificial intelligence that focuses on the interaction between computers and humans through natural language. The ultimate objective of NLP is to read, decipher, understand, and make sense of human language in a valuable way\cite{ibm2023nlp}. It combines computational linguistics—rule-based modeling of human language—with statistical, machine learning, and deep learning models\cite{sas2023nlp}.
+
+Natural Language Processing (NLP) studies how computers interpret and generate human language~\cite{ibm2023nlp,sas2023nlp}. It combines computational linguistics with statistical and neural models.
 
 \subsection{Role of NLP in Autonomous Navigation}
 
-NLP plays a significant role in autonomous navigation, particularly in tasks that involve understanding and following natural language instructions. For instance, an autonomous robot may need to understand instructions such as "Go straight and then turn right at the intersection" to navigate effectively\cite{Chen2011Learning}.
-In the context of autonomous navigation, NLP can be used to interpret high-level commands and translate them into a sequence of actions. For example, a study by Chen et al. (2017) demonstrated how NLP can be used to interpret high-level commands in an autonomous navigation task\cite{Chen2011Learning}.
-
-Moreover, NLP can also be used in the design of possible solutions to perform local navigation, global navigation, path planning, steering control, and rate control of a mobile robot\cite{omrane2016fuzzy}.
+In language-guided navigation, NLP is required to interpret passenger or operator commands and relate them to the visual scene. Classic work by Chen and Mooney~\cite{Chen2011Learning} showed how natural language instructions can be grounded into navigational behaviour. More recent VLN systems treat instruction following as a core multimodal problem rather than a pure control problem.
 
 \subsection{Basic Methods in NLP}
 
-There are several basic methods used in NLP, including language models and text classification.
+\textbf{Language models} assign probabilities to word sequences and underpin many NLP systems~\cite{Jurafsky2023Speech,devlin2018bert}.
+\textbf{Text classification} assigns documents or utterances to categories~\cite{devlin2018bert}.
+\textbf{Attention mechanisms} compute importance-weighted combinations of token representations and are central to modern sequence models and transformers~\cite{Hu2019introductory,vaswani2017attention}.
 
-\textbf{Language models} are probabilistic computer models of language that are used for predicting the next word in a sentence given the words that came before it\cite{Jurafsky2023Speech}. They are a fundamental part of many NLP tasks, including speech recognition, machine translation, part-of-speech tagging, and others\cite{devlin2018bert}.
+For outdoor driving commands, the linguistic input is typically short (a few words to a short sentence) but referentially rich: it names objects, colours, spatial relations, and manoeuvres. The system must therefore encode word-level semantics and align them with visual features, which is exactly the role of the CLIP language encoder used in Chapter~\ref{ch:vln}.
 
-\textbf{Text classification}, on the other hand, is the process of classifying text strings or documents into different categories, depending upon the contents of the strings. Text classification has a variety of applications, such as detecting spam emails, classifying blog posts into different categories, sentiment analysis, and more\cite{devlin2018bert}.
+\subsection{Text Encoders in Autonomous Navigation}
 
-\textbf{Iterated Dilated Convolutions} (ID-CNNs) is used for encoding sequence data based on the importance score each element is assigned. It has been widely applied to and attained significant improvement in various tasks in natural language processing, including sentiment classification, text summarization, question answering, dependency parsing, etc\cite{Strubell2017Fast}.
+Text encoders such as word2vec, GloVe, and Bidirectional Encoder Representations from Transformers (BERT) convert language into vectors usable by downstream models~\cite{towardsdatascience2023textencoding,devlin2018bert}. In VLN, Raychaudhuri et al.~\cite{Raychaudhuri2021Language} propose language-aligned supervision for off-path recovery and a metric that counts completed sub-instructions. Dual-scale graph transformers such as DUET~\cite{chen2022think} combine coarse map reasoning with fine-grained language grounding for indoor VLN.
 
-\textbf{Attention mechanisms} are used to align tokens in machine translation and have been adapted for various NLP tasks. They are used to encode sequence data based on the importance score each element is assigned, leading to significant improvements in various tasks such as sentiment classification, text summarization, question answering, and dependency parsing\cite{Hu2019introductory}.
-
-\textbf{Guided Experimentation and Reflective Dialogue} is used in the Basic Electricity and Electronics Tutorial Learning Environment (BEETLE II) to teach conceptual knowledge about basic electronics and electricity. It uses guided experimentation with a circuit simulator and reflective dialogue to encourage effective self-explanation\cite{Dzikovska2014BEETLE}.
-
-\textbf{Toxicity Mitigation Strategies} are strategies to measure and guarantee the quality of generated text in terms of safety. They involve the use of large language models to generate text and then apply toxicity mitigation strategies to ensure the safety of the generated text\cite{Welbl2021Challenges}. As we hope for more self-explainable that could have a reflective dialogue to allow more fine-tuned instructions to be conveyed by to and fro discussion, these strategies are unquestionably important.
-
-\subsection{Use of Text Encoders in Autonomous Navigation Tasks}
-
-Text encoders, such as word2vec, GloVe, and BERT, are used to convert text into a form that can be understood by machine learning algorithms. These encoders can be used in autonomous navigation tasks to understand and follow text-based instructions\cite{towardsdatascience2023textencoding}.
-
-In study by Raychaudhuri(2021), the authors address the Vision-and-Language Navigation (VLN) task, where an embodied agent navigates a 3D environment following natural language instructions. A significant challenge in this task is handling 'off the path' scenarios where an agent deviates from a reference path. The authors propose a language-aligned supervision scheme and a new metric that measures the number of sub-instructions the agent has completed during navigation\cite{Raychaudhuri2021Language}. This approach demonstrates how a text encoder can be used to interpret natural language instructions in an autonomous navigation task.
-
-In another study, a trajectory tracking controller using fuzzy logic was designed for a mobile robot to navigate in indoor environments11. The robot was equipped with DC motor, nine infrared range (IR) sensors to measure the distance to obstacles, and two optical encoders to provide the actual position and speeds\cite{omrane2016fuzzy}.
-
-In a more recent study, a dual-scale graph transformer (DUET) was proposed for vision-and-language navigation (VLN) based on online constructed topological maps\cite{chen2022think}. The DUET model uses graph transformers to reason over a coarse-scale map representation for long-term action planning and a fine-scale local representation for fine-grained language grounding. The two scales are dynamically combined in the navigation policy. This approach has been shown to achieve state-of-the-art performance on VLN benchmarks\cite{chen2022think}.
+In our setting, we prefer a jointly trained vision--language encoder (CLIP) over a language-only encoder, because the command and the road scene must be compared in a shared embedding space before dense prediction.
 
 \section{Combining Vision and Language: Visual-Language Embeddings}
 
-Visual-language embeddings are a type of data representation that combines visual and language information into a common embedding space\cite{Baltrusaitis2019Multimodal}. These embeddings are generated by models trained to understand the relationship between visual and language data, allowing them to capture the semantic meaning of both visual and textual inputs\cite{Lu2019VILBERT}.
+Visual--language embeddings place images and text in a common representation space so that semantic matches lie close together~\cite{Baltrusaitis2019Multimodal,Lu2019VILBERT}.
 
-\subsection{Introduction to CLIP and beyond}
-One of the models that generate visual-language embeddings is OpenAI's CLIP (Contrastive Language--Image Pretraining)~\cite{radford2021learning}. CLIP is trained contrastively on large-scale internet text--image pairs: an image encoder and a text encoder are jointly optimized so that matched pairs are close in a shared embedding space. This dual-encoder design makes CLIP a natural backbone for VLN, where visual frames and linguistic commands must be aligned.
+\subsection{Introduction to CLIP and Beyond}
+
+CLIP (Contrastive Language--Image Pretraining)~\cite{radford2021learning} is trained on large-scale internet image--text pairs. An image encoder and a text encoder are jointly optimised so that matched pairs are close in a shared embedding space (Figure~\ref{fig:clip_schematic}). This dual-encoder design makes CLIP a natural backbone for VLN, where camera frames and linguistic commands must be aligned.
 
 \begin{figure}[ht]
     \centering
-    \fbox{\parbox{0.92\textwidth}{\centering\vspace{1.2em}
-    \textbf{CLIP dual-encoder (schematic)}\\[0.6em]
-    Image encoder $\rightarrow$ visual embedding\\
-    Text encoder $\rightarrow$ language embedding\\
-    Contrastive similarity in a shared space\\[0.4em]
-    {\small\textit{Placeholder schematic --- replace with a drawn figure if desired.}}
-    \vspace{1.2em}}}
+    \begin{tikzpicture}[
+        node distance=0.9cm and 1.6cm,
+        box/.style={draw, rounded corners, align=center, minimum height=0.85cm, minimum width=2.3cm, font=\small},
+        arr/.style={-{Stealth}, thick}
+    ]
+        \node[box] (img) {Image};
+        \node[box, right=of img] (txt) {Text};
+        \node[box, below=of img] (imgenc) {Image encoder};
+        \node[box, below=of txt] (txtenc) {Text encoder};
+        \node[box, below=of imgenc] (vemb) {Visual embedding};
+        \node[box, below=of txtenc] (lemb) {Language embedding};
+        \node[box, below=1.4cm of imgenc, xshift=1.9cm, minimum width=5.2cm] (space) {Shared embedding space\\(contrastive alignment)};
+        \draw[arr] (img) -- (imgenc);
+        \draw[arr] (imgenc) -- (vemb);
+        \draw[arr] (txt) -- (txtenc);
+        \draw[arr] (txtenc) -- (lemb);
+        \draw[arr] (vemb) -- (space);
+        \draw[arr] (lemb) -- (space);
+    \end{tikzpicture}
     \caption{CLIP~\cite{radford2021learning} encodes images and text into a shared embedding space via contrastive learning. We use CLIP features for both modalities in Chapter~\ref{ch:vln}.}
     \label{fig:clip_schematic}
 \end{figure}
 
-While CLIP represents a significant advancement in visual-language understanding, newer models like GPT-4 and XDecoder introduce further improvements. GPT-4, an extension of the GPT family of models, is designed to understand and generate human-like text\cite{Brown2020Language}. XDecoder, on the other hand, is a multi-modal transformer model that can handle multiple types of input data, including visual and textual data\cite{zou2023generalized}. These models, with their advanced capabilities, have the potential to significantly enhance the performance of language-guided navigation systems.
+Larger generative models such as GPT-4~\cite{Brown2020Language} and multi-modal architectures such as XDecoder~\cite{zou2023generalized} further expand the space of vision--language systems. They are not used in this thesis, but they illustrate the broader trajectory of the field toward richer multimodal reasoning.
 
-\subsection{Why are they important in language-guided navigation?}
-In the context of language-guided navigation, visual-language embeddings can play a crucial role. They allow a system to understand and relate the visual information from its environment with the language instructions it receives. This capability is crucial for tasks that involve following natural language instructions in a visual environment\cite{Chen2019TOUCHDOWN}.
+\subsection{Why They Matter for Language-Guided Navigation}
 
-Yongming Rao et al. \cite{Rao_Zhao_Chen_Tang_Zhu_Huang_Zhou_Lu_2022} discusses the use of Contrastive Learning in the context of dense prediction tasks. The authors propose a new framework for dense prediction by implicitly and explicitly leveraging the pre-trained knowledge from CLIP (Contrastive Language-Image Pretraining). The authors convert the original image-text matching problem in CLIP to a pixel-text matching problem and use the pixel-text score maps to guide the learning of dense prediction models.
+In language-guided navigation, visual--language embeddings let a system relate what it sees to what it is told to do~\cite{Chen2019TOUCHDOWN}. Dense-prediction adaptations of CLIP, such as converting image--text matching into pixel--text matching~\cite{Rao_Zhao_Chen_Tang_Zhu_Huang_Zhou_Lu_2022}, are particularly relevant because our outputs are segmentation masks rather than classification scores.
 
-While there are no specific research papers available that discuss the use of visual-language embeddings like GPT-4, or XDecoder in autonomous navigation tasks, the potential of these models in this field is vast. Their ability to understand and relate visual and language data can be leveraged to build more robust and intelligent navigation systems. However, it's important to note that these models also have limitations. For instance, they require large amounts of data for pre-training and can be computationally intensive. Additionally, their performance can be affected by the quality and diversity of the training data\cite{Chen2019TOUCHDOWN}.
-
-In conclusion, visual-language embeddings represent a promising direction for the development of advanced language-guided navigation systems. As research in this area progresses, we can expect to see more sophisticated models that can better understand and navigate complex environments.
-
+The practical implication for Chapters~\ref{ch:dataset} and~\ref{ch:vln} is architectural: we treat VLN as grounding a command into a navigable region using CLIP features, then hand that region to a planner, rather than translating language directly into a discrete action.
 
 \section{Language-Guided Navigation}
 
 \subsection{Overview}
 
-Language-guided navigation is a subfield of artificial intelligence that focuses on developing systems capable of interpreting natural language instructions and using them to navigate through a physical or virtual environment. This can be particularly useful in complex systems where visual cues may be insufficient or overwhelming. Language-guided navigation can be implemented in various forms, such as text-based instructions, voice commands, or even natural language processing algorithms that interpret user input in a conversational manner. This involves understanding the semantics of the language, recognizing objects or landmarks mentioned in the instructions, and making decisions about the best path to follow based on these instructions. It is a complex task that combines natural language processing, computer vision, and decision-making algorithms\cite{anderson2018vision}.
-
-\subsubsection{Why is it Challenging?}
-Language-guided navigation requires a deep understanding of the language being used, including its syntax, semantics, and context. This is particularly challenging when dealing with natural language inputs, which can be ambiguous and highly context-dependent. Language-guided navigation systems need to be user-friendly and intuitive. They need to provide clear feedback and be able to handle incorrect or unclear inputs gracefully. This requires careful interface design and user testing. They also need to be able to handle a wide variety of inputs and navigate through complex decision trees to provide the correct response or action. This requires sophisticated algorithms and large databases of potential inputs and corresponding actions. Thus the challenges of language-guided navigation can be articulated as:
+Language-guided navigation develops systems that interpret natural language instructions and use them to move through a physical or virtual environment~\cite{anderson2018vision}. It combines NLP, computer vision, and decision-making. Challenges include:
 
 \begin{enumerate}
-    \item \textbf{Ambiguity in Language:} Natural language instructions can be ambiguous and open to interpretation. For example, the instruction "turn right at the next junction" could be interpreted differently depending on the context and the individual's understanding of what constitutes a junction.
-    \item \textbf{Variability in Language:} Different people may use different words or phrases to describe the same instruction. For example, some might say "go straight ahead", while others might say "continue forward". The system must be able to understand and act upon these different expressions.
-    \item \textbf{Integration of Multiple AI Domains:} Language-guided navigation requires the integration of multiple AI domains, including natural language processing, computer vision, and decision-making algorithms. This integration is complex and requires sophisticated algorithms to ensure the system can accurately interpret instructions, recognize objects or landmarks, and make appropriate navigation decisions.
-    \item \textbf{Real-Time Processing:} In many applications, language-guided navigation systems need to process instructions and make decisions in real-time. This requires efficient algorithms and high computational power\cite{anderson2018vision}.
+    \item \textbf{Ambiguity:} the same words can mean different regions depending on context.
+    \item \textbf{Variability:} different phrasings can describe the same manoeuvre.
+    \item \textbf{Multimodal integration:} language, vision, and control must be combined reliably.
+    \item \textbf{Real-time constraints:} decisions must keep up with a moving vehicle~\cite{anderson2018vision}.
 \end{enumerate}
 
-\subsubsection{Importance and Applications of Language-Guided Navigation}
-Language-guided navigation has a wide range of applications and is of significant importance in the development of intelligent systems. Here are some of its applications:
-\begin{enumerate}
-    \item \textbf{Autonomous Vehicles:} In autonomous vehicles, language-guided navigation can be used to interpret voice commands from passengers and navigate the vehicle accordingly.
-    \item \textbf{Robotics:} In robotics, it can be used to guide robots in performing tasks in various environments, such as homes, factories, or hospitals.
-    \item \textbf{Assistive Technology:} For individuals with visual impairments or other disabilities, language-guided navigation can be used in assistive technologies to help them navigate their environments.
-    \item \textbf{Virtual Reality and Gaming:} In virtual reality and gaming, it can be used to create more immersive and interactive experiences by allowing users to navigate virtual environments using natural language instructions\cite{anderson2018vision}.
-\end{enumerate}
-Language-guided navigation, particularly in the context of autonomous driving, has the potential to revolutionize the way we interact with vehicles and navigate our surroundings. This technology is not only applicable to assistive healthcare and indoor non-dynamic settings as discussed above, but also extends to outdoor settings, where it can be used to guide autonomous vehicles based on verbal commands.
-
-In the realm of autonomous driving, language-guided navigation can be used to ground navigable regions corresponding to a given textual command. For instance, at each timestamp, the autonomous driving model can predict a segmentation mask corresponding to the intermediate or the final navigable region.
-The development of effective language-guided navigation systems has the potential to revolutionize these and many other fields, making it an important area of research in artificial intelligence.
+Applications range from passenger voice commands in autonomous vehicles, to service robots, assistive technologies, and interactive virtual environments~\cite{anderson2018vision}. For outdoor driving specifically, the hard case---and the focus of this thesis---is grounding intermediate navigable regions when the final referred goal is not yet visible.
 
 \subsection{Existing Datasets}
 
-In the field of language-guided navigation, several datasets have been developed to facilitate research and development. Here, we will discuss a few notable ones:
+Several datasets have shaped language-guided navigation research:
 
 \begin{enumerate}
-    \item \textbf{Room-to-Room (R2R):} This dataset, developed by Anderson et al. (2018), is based on the Matterport3D dataset and includes detailed panoramic images of indoor environments. The dataset provides natural language instructions for navigating these environments, making it a valuable resource for studying language-guided navigation\cite{anderson2018vision}.
-    \item \textbf{Touchdown:} This dataset, developed by Chen et al. (2019), focuses on outdoor navigation in urban environments. It provides detailed navigation instructions along with corresponding street view images from Google Maps\cite{Chen2019TOUCHDOWN}.
-    \item \textbf{StreetNav:} This dataset, proposed by Mirowski et al. (2019), is built on top of Google Street View and provides visually accurate environments representing real places. Agents are given driving instructions which they must learn to interpret in order to successfully navigate in this environment\cite{Mirowski2019Learning}.
-    \item \textbf{Mapillary Street-Level Sequences (MSLS):} This dataset, introduced by Warburg et al. (2020), is a large-scale dataset for lifelong visual place recognition. It includes sequences of street-level images from different cities around the world, captured across seasons and times of day\cite{warburg2020mapillary}. (Mapillary Vistas~\cite{Neuhold2017mapillary} is a related street-level semantic segmentation dataset and should not be confused with MSLS.)
-    \item \textbf{Active Vision Dataset (AVD):} This dataset, developed by Ammirato et al. (2017), is designed for active vision tasks such as object detection, scene recognition, and room layout estimation. It includes images from multiple viewpoints in indoor environments\cite{Ammirato2017dataset}.
-    \item \textbf{Stanford 2D-3D-Semantics Dataset (2D-3D-S):} This dataset, developed by Armeni et al. (2017), includes RGB-D images from multiple indoor environments, with detailed semantic annotations\cite{armeni2017joint}.
-    \item \textbf{AI2-THOR:} This dataset, developed by Kolve et al. (2017), is a near photo-realistic interactive simulation of indoor environments. It includes a variety of objects that an agent can interact with, making it suitable for tasks that require understanding of object properties and affordances\cite{kolve2017ai2}.
-    \item \textbf{House3D:} This dataset, developed by Wu et al. (2018), is a rich, large-scale dataset that includes thousands of diverse, complex 3D indoor scenes. It is designed for developing and testing algorithms for navigation, instruction following, and question answering\cite{wu2018building}.
-
+    \item \textbf{Room-to-Room (R2R):} Anderson et al.~\cite{anderson2018vision} provide natural language instructions over Matterport3D indoor panoramas.
+    \item \textbf{Touchdown:} Chen et al.~\cite{Chen2019TOUCHDOWN} target outdoor urban navigation with Google Street View and discrete actions.
+    \item \textbf{StreetNav:} Mirowski et al.~\cite{Mirowski2019Learning} study instruction following on Google Street View environments.
+    \item \textbf{Mapillary Street-Level Sequences (MSLS):} Warburg et al.~\cite{warburg2020mapillary} provide large-scale street-level sequences for lifelong place recognition. Mapillary Vistas~\cite{Neuhold2017mapillary} is a related semantic segmentation dataset and should not be confused with MSLS.
+    \item \textbf{Active Vision Dataset (AVD):} Ammirato et al.~\cite{Ammirato2017dataset} support active vision in indoor scenes.
+    \item \textbf{Stanford 2D-3D-Semantics (2D-3D-S):} Armeni et al.~\cite{armeni2017joint} provide RGB-D indoor data with semantic annotations.
+    \item \textbf{AI2-THOR:} Kolve et al.~\cite{kolve2017ai2} offer interactive photorealistic indoor rooms.
+    \item \textbf{House3D:} Wu et al.~\cite{wu2018building} provide large-scale diverse indoor 3D scenes for navigation and instruction following.
 \end{enumerate}
 
-While these datasets have significantly contributed to the progress in language-guided navigation, they also have certain limitations. For instance, some datasets focus solely on indoor environments, limiting their applicability to outdoor or urban scenarios. Others provide synthetic or simplified language instructions, which may not fully capture the complexity and ambiguity of natural language instructions in real-world scenarios.
+Table~\ref{table:dataset_comparison} positions the datasets most relevant to our contribution---including Talk2Car~\cite{deruyttere2019talk2car}, Referring Navigable Regions (RNR)~\cite{Rufus_2021}, and CARLA-NAV---along the axes that matter for outdoor language-guided driving.
 
-Moreover, most existing datasets do not specifically focus on the sub-field of language-guided autonomous driving, which involves unique challenges such as understanding complex traffic scenarios, obeying traffic rules, and interacting with other road users.
+\begin{table}[ht]
+\centering
+\scriptsize
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+Dataset & Environment & Dynamics & Action space & Annotation & Live eval. \\
+\midrule
+R2R~\cite{anderson2018vision} & Indoor & Static scenes & Graph nodes & Path + instr. & No \\
+Touchdown~\cite{Chen2019TOUCHDOWN} & Outdoor & Static panoramas & Discrete actions & Path + instr. & No \\
+StreetNav~\cite{Mirowski2019Learning} & Outdoor & Static panoramas & Discrete actions & Path + instr. & No \\
+Talk2Car~\cite{deruyttere2019talk2car} & Outdoor & Dynamic (nuScenes) & Object grounding & Object box & No \\
+RNR~\cite{Rufus_2021} & Outdoor & Static frames & Region grounding & Navigable mask & No \\
+CARLA-NAV (ours) & Outdoor & Dynamic traffic & Continuous (planner) & Navigable mask & Yes \\
+\bottomrule
+\end{tabular}
+\caption{Comparison of language-guided navigation and grounding datasets along axes relevant to outdoor autonomous driving. CARLA-NAV uniquely combines outdoor dynamic scenes, continuous control via a local planner, navigable-region masks, and live episode-level evaluation. Details of CARLA-NAV are given in Chapter~\ref{ch:dataset}.}
+\label{table:dataset_comparison}
+\end{table}
 
-Therefore, there is a need for new datasets that can address these limitations and provide more realistic, diverse, and challenging scenarios for language-guided navigation, especially in the context of autonomous driving.
-
+Most prior datasets either assume indoor graphs, restrict outdoor agents to discrete actions on pre-recorded panoramas, or ground objects rather than navigable road regions. Few support live episode completion in a fully navigable dynamic environment. These gaps motivate CARLA-NAV.
 
 \subsection{Existing Methods}
 
-Language-guided navigation is a complex task that requires the integration of various skills, including language understanding, visual perception, and decision-making \cite{anderson2018vision}\cite{Chen2019TOUCHDOWN}. Existing methods for language-guided navigation can be broadly categorized into three types: modular, end-to-end, and hybrid approaches.
+Language-guided navigation methods are often grouped as modular, end-to-end, or hybrid~\cite{anderson2018vision,Chen2019TOUCHDOWN}.
 
-Modular approaches break down the task into separate components, each responsible for a specific subtask \cite{Misra_Langford_Artzi_2017}. For instance, one module might be dedicated to language understanding, another to visual perception, and a third to decision-making \cite{fried2018speaker}. These modules work in sequence, with each one taking the output of the previous as its input \cite{Zhu_Zhu_Chang_Liang_2020}. While this approach allows for specialization in each subtask, it also introduces potential error propagation issues, as mistakes made in earlier stages can affect the performance of later ones \cite{Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018}. Misra et al. \cite{Misra_Langford_Artzi_2017} used this approach to map instructions and visual observations to actions using reinforcement learning. However, they found that error propagation could be a significant issue, especially in complex environments.
+Modular pipelines separate language understanding, perception, and decision-making~\cite{Misra_Langford_Artzi_2017,fried2018speaker,Zhu_Zhu_Chang_Liang_2020}. Specialisation helps, but errors can propagate across stages~\cite{Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018,Misra_Langford_Artzi_2017}.
 
-End-to-end approaches, on the other hand, aim to learn a direct mapping from input (i.e., instructions and visual input) to output (i.e., actions) using a single model \cite{bojarski2016end}. This is typically achieved using deep learning techniques, which allow the model to automatically learn useful features and decision-making strategies from raw input data \cite{Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018}. While end-to-end approaches can potentially achieve higher performance than modular ones, they often require large amounts of training data and can be more difficult to interpret and debug \cite{pomerleau1988alvinn}. Bojarski et al. \cite{bojarski2016end} used this approach for self-driving cars and found that it could achieve high performance, but it required a large amount of training data and was difficult to interpret.
+End-to-end models map instructions and images directly to actions~\cite{bojarski2016end,Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018,pomerleau1988alvinn}. They can perform well with enough data, but are harder to interpret and debug.
 
-Hybrid approaches attempt to combine the strengths of both modular and end-to-end approaches \cite{Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018}. They typically involve a combination of specialized modules and end-to-end learning. For example, a hybrid approach might use a modular approach to process language and visual input separately, and then use an end-to-end model to make decisions based on the processed inputs \cite{bojarski2016end}. This allows the model to leverage both the specialization of modular approaches and the automatic feature learning of end-to-end approaches \cite{Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018}. Codevilla et al. \cite{Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018} used this approach for driving via conditional imitation learning and found that it could leverage the strengths of both approaches, but it was still challenging to balance the two.
+Hybrid approaches combine specialised modules with learned policies~\cite{Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018,bojarski2016end}. Training may use reinforcement learning, imitation learning, or both~\cite{anderson2018vision,Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018}.
 
-In addition to these broad categories, there are also various specific techniques used in language-guided navigation. For instance, some methods use reinforcement learning to train the model to make decisions that maximize long-term rewards \cite{anderson2018vision}. Others use imitation learning to train the model to mimic expert behavior\cite{Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018}. There are also methods that use a combination of reinforcement learning and imitation learning\cite{Codevilla_Muller_Lopez_Koltun_Dosovitskiy_2018}. Anderson et al. \cite{anderson2018vision} used reinforcement learning for interpreting visually-grounded navigation instructions and found that it could be effective, but it was challenging to define appropriate rewards.
-
-Despite the progress made in language-guided navigation, there are still many challenges to be addressed. For instance, understanding and following complex instructions, dealing with ambiguous or incomplete instructions, and navigating in unfamiliar or dynamic environments are all difficult problems that require further research \cite{anderson2018vision}. Anderson et al. \cite{anderson2018vision} highlighted these challenges in their work on interpreting visually-grounded navigation instructions in real environments.
-
-The previous works can also be grouped based on the different heuristic approaches taken up by different authors.
+Specific VLN methods include:
 
 \begin{itemize}
-    \item \textbf{Vision-and-Language Navigation (VLN):} Anderson et al. \cite{anderson2018vision} proposed a method for vision-and-language navigation (VLN) in real-world indoor environments. The model uses a sequence-to-sequence network that maps a series of images and a natural language instruction to a sequence of actions. The model is trained using reinforcement learning from both expert demonstrations and environmental rewards.
-
-    \item \textbf{Cross Modal Matching:} In the work by Wang et al. \cite{Wang_Huang_Celikyilmaz_Gao_Shen_Wang_Wang_Zhang_2019}, the authors proposed a model called Reinforced Cross-Modal Matching (RCM) for the VLN task. The model learns to align sub-instructions in the language instruction with corresponding observed visual scenes. The model uses a cross-modal attention mechanism to achieve this alignment. The model is trained using a combination of supervised learning and reinforcement learning.  
-    \item \textbf{Learnable Heuristic Model:} Ma et al. (2019) \cite{Ma_Wu_AlRegib_Xiong_Kira_2019} presents a novel approach to the Vision and Language Navigation (VLN) task, where an agent must navigate to a destination based solely on visual cues and language instructions, without any explicit knowledge of the goal. The authors introduce a learnable heuristic, a progress monitor, to guide the search process. They also propose two key modules: the Regret Module and the Progress Marker. The Regret Module is a learned mechanism that allows the agent to decide whether to keep moving forward or to backtrack to a previous state. The Progress Marker assists the agent in choosing the next direction to take by indicating previously visited directions and their associated progress estimates. The proposed method has shown significant improvements over existing methods, achieving a 5\% absolute increase in success rates on the test server, and an 8\% increase in success rates normalized by the path length.
-
-    \item \textbf{Self-Monitoring Agent:} Ma et al. \cite{ma2019selfmonitoring} proposed a self-monitoring agent for the VLN task. The agent uses a visual-textual co-grounding mechanism to monitor the alignment between the visual scenes and the language instruction during the navigation process. The model uses an auxiliary task of predicting the next action during training to improve the grounding accuracy.
-
-    \item \textbf{Environment Dropout (EnvDrop):} Tan et al.~\cite{tan2019learning} proposed Environmental Dropout for the VLN task. The model uses a data augmentation technique that randomly drops visual observations during training, forcing greater reliance on the language instruction and improving robustness to changes in the environment.
-
-    \item \textbf{Weakly-Supervised:} Chen et al. \cite{chen2022weakly} propose a novel approach for Vision-and-Language Navigation (VLN) tasks. Their method involves creating a multi-granularity map that captures both fine details and semantic classes of objects. This map is used in a weakly-supervised task to help the agent localize relevant objects based on instructions. The map and instructions are then used to predict the next navigation goal. The proposed method has shown improved performance on the VLN-CE dataset.
+    \item \textbf{Sequence-to-sequence VLN:} Anderson et al.~\cite{anderson2018vision} map image sequences and instructions to actions with reinforcement learning from demonstrations and environment rewards.
+    \item \textbf{Cross-modal matching:} Wang et al.~\cite{Wang_Huang_Celikyilmaz_Gao_Shen_Wang_Wang_Zhang_2019} propose Reinforced Cross-Modal Matching (RCM) to align sub-instructions with observed scenes.
+    \item \textbf{Progress monitoring and regret:} Ma et al.~\cite{Ma_Wu_AlRegib_Xiong_Kira_2019,ma2019selfmonitoring} introduce a progress monitor, regret/backtracking, and visual--textual co-grounding so the agent can track instruction progress and decide whether to continue or reverse.
+    \item \textbf{Environment Dropout (EnvDrop):} Tan et al.~\cite{tan2019learning} randomly drop visual observations during training to improve robustness to environment change.
+    \item \textbf{Weakly supervised mapping:} Chen et al.~\cite{chen2022weakly} build multi-granularity maps for object localisation and goal prediction on VLN-CE.
 \end{itemize}
 
-
-These methods have significantly advanced the field of language guided navigation. However, there are still many challenges to be addressed, such as improving the robustness of the models to changes in the environment and improving the grounding accuracy between the visual scenes and the language instructions.
+Despite this progress, outdoor dynamic driving with continuous control and interpretable region grounding remains comparatively underexplored. That is the setting addressed in Chapters~\ref{ch:dataset} and~\ref{ch:vln}.
 
 \section{Introduction to CARLA Simulator}
 
-CARLA (Car Learning to Act) is an open-source simulator for autonomous driving research \cite{dosovitskiy2017carla}. It has been developed from the ground up to support the development, training, and validation of autonomous driving systems. In addition to open-source code and protocols, CARLA provides open digital assets (urban layouts, buildings, vehicles) that were created for this purpose and can be used freely. The simulation platform supports flexible specification of sensor suites, environmental conditions, full control of all static and dynamic actors, maps generation and much more.
+CARLA (Car Learning to Act) is an open-source simulator for autonomous driving research~\cite{dosovitskiy2017carla}. It provides urban layouts, vehicles, pedestrians, configurable weather and sensors, and an API for controlling the simulation. A server--multi-client architecture supports scalable experiments. Sensors include cameras, LiDAR, depth, and GPS. Maps follow the OpenDRIVE standard; ScenarioRunner defines traffic situations; a ROS bridge is available. CARLA also ships baseline agents and supports record/replay for controlled comparisons.
 
-CARLA offers a server multi-client architecture for scalability, allowing multiple clients in the same or in different nodes to control different actors. It exposes a powerful API that allows users to control all aspects related to the simulation, including traffic generation, pedestrian behaviors, weathers, sensors, and much more. It also provides a suite of autonomous driving sensors, including LIDARs, multiple cameras, depth sensors, and GPS among others.
+These properties make CARLA suitable for CARLA-NAV: we can spawn dynamic traffic, collect synchronized camera and pose data, project clicked navigable regions into masks, and later evaluate live navigation rather than only scoring pre-recorded frames.
 
-CARLA also supports fast simulation for planning and control, disabling rendering to offer a fast execution of traffic simulation and road behaviors for which graphics are not required. Users can easily create their own maps following the OpenDrive standard via tools like RoadRunner. The engine ScenarioRunner allows users to define and execute different traffic situations based on modular behaviors. CARLA also provides integration with ROS via their ROS-bridge.
+\section{Summary}
 
-CARLA provides Autonomous Driving baselines as runnable agents, including an AutoWare agent and a Conditional Imitation Learning agent. It also allows users to record and replay their simulations exactly, enabling them to repeat and compare results for different sensors or configurations.
-
-Morais et al. \cite{Morais_Aguiar_2022b} addresses the autonomous driving problem. More specifically, a Model Predictive Control (MPC) is implemented for the lateral and longitudinal control of an autonomous vehicle. The main goal of this study is to validate the robustness, performance, and safety of the developed algorithm in simulation, using the widely known self-driving simulator CARLA together with the Robot Operating System (ROS) framework.
+This chapter established the background needed for the remainder of the thesis. Autonomous driving combines perception, planning, and control; our contribution sits at the language-conditioned perception layer. Computer vision supplies dense prediction tools; NLP and visual--language embeddings---especially CLIP---supply the alignment between commands and images. Existing VLN datasets and methods largely assume indoor graphs, discrete outdoor actions, or static grounding, as summarised in Table~\ref{table:dataset_comparison}. CARLA provides a controllable outdoor simulator in which those assumptions can be relaxed. Chapter~\ref{ch:dataset} introduces the CARLA-NAV dataset built on this foundation, and Chapter~\ref{ch:vln} presents the multi-task grounding network and live-navigation results.

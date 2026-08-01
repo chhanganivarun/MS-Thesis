@@ -79,7 +79,7 @@ We compare our proposed approach CLIP-MC (multiple frames with contextual trajec
     \item CLIP-MC: multiple frames with contextual trajectory (proposed).
 \end{itemize}
 
-Table~\ref{table:task_completion} reports Task Completion. CLIP-MC outperforms all variants. Introducing historical contextual trajectory improves validation TC by $4\%$ for single-frame approaches (CLIP-SC vs.\ CLIP-S) and by $16\%$ for multi-frame approaches (CLIP-MC vs.\ CLIP-M). The multi-frame approach CLIP-M improves by $8\%$ over CLIP-S on both validation and test splits. These results indicate that multiple frames and contextual trajectory are both required for effective outdoor VLN. CLIP-based single-frame models also outperform non-CLIP RNR variants on the test split, highlighting the benefit of CLIP multi-modal features.
+Table~\ref{table:task_completion} reports Task Completion. CLIP-MC outperforms all variants. Introducing historical contextual trajectory improves validation TC by 4 percentage points for single-frame approaches (CLIP-SC $0.52$ vs.\ CLIP-S $0.48$) and by 16 percentage points for multi-frame approaches (CLIP-MC $0.72$ vs.\ CLIP-M $0.56$). The multi-frame approach CLIP-M improves by 8 percentage points over CLIP-S on both validation and test splits ($0.56$ / $0.55$ vs.\ $0.48$ / $0.47$). These results indicate that multiple frames and contextual trajectory are both required for effective outdoor VLN. CLIP-based single-frame models also outperform non-CLIP RNR variants on the test split, highlighting the benefit of CLIP multi-modal features.
 
 \begin{table}[ht]
 \begin{center}
@@ -148,12 +148,36 @@ Figure~\ref{fig:qualitative_1} compares CLIP-MC with RNR-S during live inference
 \label{fig:qualitative_1}
 \end{figure}
 
+\section{Failure Modes}
+
+Qualitative inspection of live episodes, including the cases shown in Figure~\ref{fig:qualitative_1}, reveals recurring failure patterns:
+
+\begin{enumerate}
+    \item \textbf{Delayed lane change:} On commands such as ``change to the left lane,'' CLIP-MC eventually executes the manoeuvre but with a slight delay relative to the ground-truth path, while RNR-S may continue straight. Temporal context helps, but reaction lag remains.
+    \item \textbf{Curve mistaken for an intersection:} On a curved road approaching a traffic light, both CLIP-MC and RNR-S stop prematurely, treating the geometry as an intersection. This suggests sensitivity to road layout cues that resemble junction structure.
+    \item \textbf{Early stopping from the area threshold:} When several candidate goal regions are visible, the area-based stopping rule can fire before the intended final region is reached, because a large connected component satisfies the threshold for five consecutive predictions.
+    \item \textbf{Referential ambiguity and path metrics:} Commands such as ``park near the blue dustbin'' admit multiple valid stopping locations. Fr\'{e}chet Distance and nDTW then penalise a spatially plausible path that differs from the recorded demonstration, even when Task Completion may still succeed.
+    \item \textbf{Synthetic-to-real domain gap:} All training and evaluation are in CARLA. Appearance, sensor noise, and traffic behaviour in the real world differ, so transfer without domain adaptation~\cite{kundu2021generalize,kang2020pixel} is an open risk.
+\end{enumerate}
+
 \section{Discussion}
 
 Historical contextual trajectory informs the model which sub-instructions have already been executed, yielding large gains for multi-frame models. Multiple frames capture broader temporal visual context needed in dynamic scenes. CLIP provides stronger multi-modal features than a ResNet-style RNR backbone for aligning language with road imagery.
 
 The area-based stopping criterion is simple and effective in many cases, but can be suboptimal when multiple candidate goal regions exist. Future improvements include confidence-aware stopping, proximity to the goal, temporal consistency of the mask, and semantic confirmation of referred objects~\cite{xiang-etal-2020-learning}. Domain adaptation toward real-world imagery~\cite{kundu2021generalize,kang2020pixel} is another important direction.
 
+\subsection{Limitations of the Current Evaluation}
+
+Several analyses that would strengthen the empirical story are not reported in this thesis, because they were not part of the original ICRA evaluation protocol:
+
+\begin{itemize}
+    \item \textbf{No per-manoeuvre breakdown:} CARLA-NAV commands contain up to three sub-commands spanning turning, going straight, stopping, and parking, yet Task Completion and path metrics are reported only in aggregate.
+    \item \textbf{Unevaluated trajectory head:} Future-trajectory prediction is used for interpretability and is never scored quantitatively against ground truth.
+    \item \textbf{No runtime profiling:} Live navigation is demonstrated in CARLA, but wall-clock inference latency and frame rate are not reported, so the real-time claim is not numerically substantiated.
+\end{itemize}
+
+Stating these gaps explicitly is preferable to implying that the current metrics fully characterise system behaviour. They are natural targets for follow-up experiments.
+
 \section{Chapter Summary}
 
-We reformulated RNR for dynamic outdoor VLN, introduced a multi-task grounding network with CLIP features, multi-frame context, and historical trajectory, and demonstrated live navigation in CARLA. Quantitative results show that CLIP-MC substantially outperforms single-frame and non-contextual baselines on Task Completion, Fr\'{e}chet Distance, and nDTW. The next chapter concludes the thesis and outlines future work.
+We reformulated RNR for dynamic outdoor VLN, introduced a multi-task grounding network with CLIP features, multi-frame context, and historical trajectory, and demonstrated live navigation in CARLA. Quantitative results show that CLIP-MC substantially outperforms single-frame and non-contextual baselines on Task Completion, Fr\'{e}chet Distance, and nDTW. Failure modes and evaluation limitations clarify where the approach still falls short. The next chapter concludes the thesis and outlines future work.

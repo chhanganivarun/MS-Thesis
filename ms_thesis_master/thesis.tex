@@ -27,6 +27,8 @@
 \usepackage{color}
 \usepackage{booktabs}
 \usepackage{polyglossia}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
 
 \usepackage{fontspec}
 \newfontfamily\hindifont{Noto Sans Devanagari}[Script=Devanagari]
@@ -82,6 +84,35 @@
 \tableofcontents
 \listoffigures
 \listoftables
+
+\chapter*{List of Acronyms}
+\addcontentsline{toc}{chapter}{List of Acronyms}
+\begin{center}
+\begin{tabular}{@{}ll@{}}
+BERT & Bidirectional Encoder Representations from Transformers \\
+CARLA & Car Learning to Act \\
+CIRL & Controllable Imitative Reinforcement Learning \\
+CLIP & Contrastive Language--Image Pretraining \\
+CNN & Convolutional Neural Network \\
+DUET & Dual-scale Graph Transformer \\
+EnvDrop & Environmental Dropout \\
+GPS & Global Positioning System \\
+IMU & Inertial Measurement Unit \\
+LiDAR & Light Detection and Ranging \\
+LSTM & Long Short-Term Memory \\
+nDTW & Normalized Dynamic Time Warping \\
+NLP & Natural Language Processing \\
+R2R & Room-to-Room \\
+REC & Referring Expression Comprehension \\
+RIS & Referring Image Segmentation \\
+RNR & Referring Navigable Regions \\
+RNN & Recurrent Neural Network \\
+SLAM & Simultaneous Localization and Mapping \\
+TC & Task Completion \\
+ViT & Vision Transformer \\
+VLN & Vision-and-Language Navigation \\
+\end{tabular}
+\end{center}
 
 %--------------------------------------------------------
 

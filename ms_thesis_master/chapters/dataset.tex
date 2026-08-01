@@ -62,7 +62,7 @@ Figure~\ref{fig:dataset_sample} shows ground-truth annotations for three sampled
 
 \section{Dataset Characteristics}
 
-CARLA-NAV contains episodic data: each episode consists of a language command and the corresponding CARLA video of navigation toward the final goal region described by the command. The ground-truth segmentation mask for each frame corresponds to either the final or an intermediate navigable region. Each frame is additionally annotated with a plausible future trajectory of the vehicle in the next few frames.
+Relative to prior language-guided navigation and grounding datasets surveyed in Chapter~\ref{ch:background} (Table~\ref{table:dataset_comparison}), CARLA-NAV is designed for outdoor dynamic scenes with continuous control and live episode-level evaluation. CARLA-NAV contains episodic data: each episode consists of a language command and the corresponding CARLA video of navigation toward the final goal region described by the command. The ground-truth segmentation mask for each frame corresponds to either the final or an intermediate navigable region. Each frame is additionally annotated with a plausible future trajectory of the vehicle in the next few frames.
 
 The dataset includes video sequences captured in 8 different maps, 14 distinct weather conditions, and a diverse range of dynamically moving vehicles and pedestrians. Language commands contain detailed visual descriptions and describe a wide range of manoeuvres. Commands can have a single manoeuvre (e.g., park behind the black car on the left) or multiple manoeuvres (e.g., take a right turn and park near the bus stand), with a maximum of three manoeuvres.
 
