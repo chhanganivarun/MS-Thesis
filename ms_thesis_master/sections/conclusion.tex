@@ -1,24 +1,17 @@
-The presented dissertation explains that Barrier Lyapunov Function when combined with optimal control strategies like the Model Predictive Controller incorporates safety and improvises the control algorithms stability and trajectory tracking abilities. MPC-BLF and MPC-CBF provide enhanced trajectory tracking for Aerial robots while providing safety guarantees. The proposed constraints are modifiable for various avoidance and bounding tasks, while providing no unnecessary hindrance to the MPC controller cost optimizer. This controller algorithm can also tackle external wind disturbances within a known bound to provide safety guarantees.
+This thesis addressed Vision-and-Language Navigation for autonomous driving in dynamic outdoor environments. We argued that existing approaches---graph-based indoor VLN, discrete-action outdoor VLN, and single-image navigable-region grounding---are insufficient when the referred goal is not yet visible, when fine manoeuvres are required, and when navigation must be evaluated live in a changing scene.
 
-In MPC-BLF for an Aerial Manipulator, the BLF-based Model predictive controller with a primary objective of safe operation in the proximity of static objects. Our approach shows how BLF, formulated for barrier avoidance and free space tracking objectives, shows robust behavior for the safe operation of an Aerial Manipulator in the presence of external disturbances. A state-of-the-art MPC-based method is modified using two types of constraints and compared with the proposed method, which shows significant improvement in two cases i.e with and without external disturbances. This is validated in simulation using parameters from a real laboratory scale AM.
+We introduced CARLA-NAV, a meta-dataset of language-guided outdoor navigation episodes in the CARLA simulator, with dense annotations for intermediate and final navigable regions and short-term future trajectories. The observer--navigator--verifier protocol, combined with automated projection of clicked regions into segmentation masks, enabled scalable curation across multiple maps and weather conditions.
 
-In MPC-CBF for maneuvering a UAV inside a tunnel, we present a control framework to handle aerodynamic torques by rotor and wall interactions. These forces are nonlinear and difficult to model, hence we define constraints to tackle these forces through a CBF. The MPC when combined with constraints using Control Barrier Function, can provide safety guarantees when flying inside a tunnel. The controller also reduces the safe hovering distance from the wall by 37\% and incorporates high disturbance tolerance.  It is also shown that flying near the ground and ceiling can reduce the UAV's power consumed (control effort) by approximately 15\%. The algorithm's efficacy provides safety guarantees while travelling inside a tunnel using parameters from a real UAV model. 
+We then proposed a multi-task network that predicts navigable-region and future-trajectory masks from multi-frame CLIP visual features, a historical contextual trajectory, and the language command. Predicted masks are used directly for live navigation via a local planner and an area-based stopping criterion. Experiments showed that combining multiple frames with historical trajectory context yields substantial gains: CLIP-MC reaches Task Completion of $0.72$ / $0.68$ on validation / test, outperforming single-frame CLIP and RNR baselines, with corresponding improvements in Fr\'{e}chet Distance and nDTW.
 
-In it's entirety, the contributions of this dissertation are suitable for complex environments, making this approach a valuable tool for a variety of applications from search and rescue to manipulation. Overall, the proposed MPC-CBF and MPC-BLF controllers provide an efficient and robust control strategy for various aerial robots to ensure collision free trajectory tracking while handling various unknown external disturbances. 
+Overall, grounding-then-navigating provides an interpretable and continuous-control alternative to discrete VLN formulations, and is a promising direction for language-conditioned autonomous driving.
 
+\section{Future Work}
 
-\noindent \section{Future Work}
-
-\noindent Future work will include determining these CBF bounds with the help of vision algorithms and utilizing them for safe tracking without human intervention. This would lead to a pathway for fully autonomous high-level control systems.
-
-Various sensor and calibration errors can be accounted for in the study to make it closer to the real world, which can further be deployed on the Aerial Manipulator and UAV hardware setup. 
-
-Techniques can also be developed for multi-UAV systems using MPC controllers with dynamic obstacle avoidance. 
-
-The proposed controllers will be deployed on actual Aerial manipulator and UAV hardware.
-
-Moreover, the alogirhtm could be made more robust by handling uncertainty in the "Prediction Model".
-
-
-
-
+\begin{itemize}
+    \item \textbf{Real-world transfer:} CARLA-NAV is synthetic. Domain adaptation techniques~\cite{kundu2021generalize,kang2020pixel} are needed before deployment on real vehicles.
+    \item \textbf{Learnable stopping:} Replacing the rule-based area threshold with a learned stopping policy~\cite{xiang-etal-2020-learning} should improve robustness.
+    \item \textbf{Trajectory-conditioned control:} The predicted future trajectory is currently used for interpretability; incorporating it into the planner could improve end-to-end behaviour.
+    \item \textbf{Richer evaluation:} Developing metrics that respect multiple valid paths for the same command would better reflect outdoor driving ambiguity.
+    \item \textbf{Interactive language:} Extending the setting to clarification dialogues and multi-turn instructions would bring the system closer to human co-driving.
+\end{itemize}

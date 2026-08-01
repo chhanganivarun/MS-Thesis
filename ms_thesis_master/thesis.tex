@@ -1,7 +1,7 @@
 %  $Description: Thesis
-%  $Author: Animesh Sinha $
-%  $Date: 11 February 2022  $
-%  $Revision: 1.0 $
+%  $Author: Varun Chhangani $
+%  $Date: 2023  $
+%  $Revision: 2.0 $
 
 \documentclass[11pt]{book}
 \usepackage{style/iiit_thesis}
@@ -25,6 +25,7 @@
 \usepackage{longtable}
 \usepackage{xcolor}
 \usepackage{color}
+\usepackage{booktabs}
 \usepackage{polyglossia}
 
 \usepackage{fontspec}
@@ -69,14 +70,12 @@
 \renewcommand{\baselinestretch}{1.5}
 
 % ACKNOWLEDGEMENTS PAGE
-\chapter*{Acknowledgments(TODO)}
-% Hindi: \foreignlanguage{hindi}{हिन्दी}
-% Sanskrit: \foreignlanguage{sanskrit}{संस्कृतम्}
+\chapter*{Acknowledgments}
 \label{ch:ack}
 \input{sections/acknowledgements.tex}
 
 %% ABSTRACT PAGE
-\chapter*{Abstract (TODO)}
+\chapter*{Abstract}
 \label{ch:abstract}
 \input{sections/abstract.tex}
 
@@ -86,7 +85,7 @@
 
 %--------------------------------------------------------
 
-\chapter{Introduction (TODO)}
+\chapter{Introduction}
 \label{ch:intro}
 \input{chapters/thesis_intro.tex}
 
@@ -98,7 +97,7 @@
 
 %--------------------------------------------------------
 
-\chapter{Data Collection for Autonomous Driving}
+\chapter{CARLA-NAV Dataset}
 \label{ch:dataset}
 \input{chapters/dataset.tex}
 
@@ -110,29 +109,13 @@
 
 %--------------------------------------------------------
 
-\chapter{Saliency for Driving???}
-\label{ch:qleet}
-\input{chapters/vln.tex}
-
-%--------------------------------------------------------
-
-\chapter{Conclusion(TODO)}
+\chapter{Conclusion}
 \label{ch:conc}
 \input{sections/conclusion.tex}
 
 %--------------------------------------------------------
-
-%%% Optional appendix
-\appendix
-
-\chapter{Algorithm Details(TODO)}
-\label{ch:appendix-qroute}
-\input{chapters/appendix.tex}
-
-
-%--------------------------------------------------------
 % Recommended 'Related Publication'
-\chapter*{Related Publications(TODO)}
+\chapter*{Related Publications}
 \label{ch:relatedPubs}
 \input{sections/related_papers.tex}
 
@@ -140,12 +123,8 @@
 
 \bibliographystyle{unsrt}
 \bibliography{
-    bibliography/main,
-    bibliography/qroute,
-    bibliography/qleet,
-    bibliography/rlreview,
-    bibliography/qalgos,
-    bibliography/background
+    bibliography/background,
+    bibliography/vln
 } 
 
 \end{document}
