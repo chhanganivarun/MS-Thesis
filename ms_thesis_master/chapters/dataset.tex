@@ -92,7 +92,36 @@ Test  & 34  & 4,987  & 7.44 & 1.97 & 34.71 \\ \hline
 \end{table}
 
 \paragraph{Language and manoeuvre diversity.}
-Commands mainly consist of up to three subcommands, most having two. Subcommands include turning, going straight, stopping, and parking, and reference pedestrians, infrastructure, road elements, other vehicles, and scenery. A manual audit of the command list yields on the order of $10^2$ unique tokens and a few hundred distinct command strings after lowercasing (many near-paraphrases); we do not claim an exact vocabulary size without a released tokeniser dump. Roughly three-fifths of episodes are multi-step; among primary manoeuvre classes, turns are the most frequent, followed by park/pull-over, straight/lane-change, and stop/wait, in roughly comparable proportions. Relative to indoor VLN datasets such as R2R~\cite{anderson2018vision}, whose instructions average on the order of 29 words, CARLA-NAV commands are short (6.9--7.4 words). The language task is therefore substantially simpler than long-horizon indoor instruction following; the difficulty instead lies in dynamic outdoor grounding and continuous control. Chapter~\ref{ch:vln} reports stratified displacement metrics for earlier ViT/Conv3D models and specifies a TC-stratified per-manoeuvre protocol for the CLIP family.
+Commands mainly consist of up to three subcommands, most having two. Subcommands include turning, going straight, stopping, and parking, and reference pedestrians, infrastructure, road elements, other vehicles, and scenery. A manual audit of the command list yields on the order of $10^2$ unique tokens and a few hundred distinct command strings after lowercasing (many near-paraphrases); we do not claim an exact vocabulary size without a released tokeniser dump. Relative to indoor VLN datasets such as R2R~\cite{anderson2018vision}, whose instructions average on the order of 29 words, CARLA-NAV commands are short (6.9--7.4 words). The language task is therefore substantially simpler than long-horizon indoor instruction following; the difficulty instead lies in dynamic outdoor grounding and continuous control. Chapter~\ref{ch:vln} reports stratified displacement metrics for earlier ViT/Conv3D models under the same target, action, and subcommand taxonomies, and specifies a TC-stratified per-manoeuvre protocol for the CLIP family.
+
+Three distribution figures existed in an earlier draft and must be relocated into \texttt{ms\_thesis\_master/figures/} once recovered. Until then we leave explicit placeholders:
+
+\begin{figure}[ht]
+\centering
+\fbox{\parbox{0.85\textwidth}{\centering\vspace{1.5cm}\textbf{TODO: Target split in dataset}\\[0.4em]
+Recover the figure showing counts / proportions of commands referring to infrastructure vs.\ road/traffic-light vs.\ automobile.\\[0.3em]
+{\small (Same taxonomy as Table~\ref{table:target_type} in Chapter~\ref{ch:vln}.)}\vspace{1.5cm}}}
+\caption{\textbf{TODO:} Target-type distribution of CARLA-NAV commands. Figure existed in an earlier draft; asset to be relocated into \texttt{figures/}.}
+\label{fig:todo_target_split}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\fbox{\parbox{0.85\textwidth}{\centering\vspace{1.5cm}\textbf{TODO: Action split in dataset}\\[0.4em]
+Recover the figure showing the distribution over primary action verbs (stop / go / take / turn / change / drive / park).\\[0.3em]
+{\small (Same taxonomy as Table~\ref{table:action_type} in Chapter~\ref{ch:vln}.)}\vspace{1.5cm}}}
+\caption{\textbf{TODO:} Action-verb distribution of CARLA-NAV commands. Figure existed in an earlier draft; asset to be relocated into \texttt{figures/}.}
+\label{fig:todo_action_split}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\fbox{\parbox{0.85\textwidth}{\centering\vspace{1.5cm}\textbf{TODO: Number of components in dataset}\\[0.4em]
+Recover the histogram of subcommands (components) per episode (1 / 2 / 3).\\[0.3em]
+{\small Example: ``do this and park near this'' counts as 2.}\vspace{1.5cm}}}
+\caption{\textbf{TODO:} Subcommand-count distribution of CARLA-NAV episodes. Figure existed in an earlier draft; asset to be relocated into \texttt{figures/}.}
+\label{fig:todo_subcommand_split}
+\end{figure}
 
 \paragraph{Maps and weather.}
 Episodes span eight CARLA maps and fourteen weather presets (clear, cloudy, wet, sunset, and night variants). Under the default protocol, episodes are shuffled so that maps and weathers appear in all of train, validation, and test in roughly balanced proportions. This design maximises diversity within each small split, but it is \emph{not} a held-out-map protocol: layout memorisation remains possible. The map-unseen evaluation contract is defined in Chapter~\ref{ch:vln}.

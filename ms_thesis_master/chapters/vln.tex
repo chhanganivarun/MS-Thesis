@@ -261,20 +261,34 @@ Table~\ref{table:frame_ablation} studies the effect of the number of video frame
 \subsection{Preliminary Architectures: ViT and Conv3D}
 \label{sec:prelim_arch}
 
-Before the CLIP-MC family, we explored two earlier architectures that share the same multi-task mask formulation but use separate visual and language encoders. These models were evaluated on an earlier 50-episode validation pool with displacement metrics (Section~\ref{sec:disp_metrics}), not with the 25/34 TC protocol; we therefore report them as a separate preliminary evaluation and do \emph{not} merge them into Tables~\ref{table:task_completion}--\ref{table:frame_ablation}.
+Before the CLIP-MC family, we explored several earlier architectures. Chronologically the lineage is: GTA-V control regression $\rightarrow$ IROS cross-modal ViT (two-class mask) $\rightarrow$ Conv3D/X3D with joint self-attention $\rightarrow$ CLIP-MC. The ViT and Conv3D models share the multi-task mask formulation but use separate visual and language encoders. They were evaluated on an earlier 50-episode validation pool with displacement metrics (Section~\ref{sec:disp_metrics}), not with the 25/34 TC protocol; we therefore report them as a separate preliminary evaluation and do \emph{not} merge them into Tables~\ref{table:task_completion}--\ref{table:frame_ablation}.
+
+\paragraph{GTA-V control regression.}
+The earliest modelling attempt predicted continuous steering, acceleration, and brake from GTA~V imagery (Chapter~\ref{ch:dataset}). That formulation was abandoned because low-level controls without an explicit spatial goal were brittle and because GTA~V lacked the calibration access needed for dense navigable-region annotation. The move to CARLA and to mask prediction is the starting point of the lineage below.
+
+\paragraph{IROS cross-modal ViT (two-class mask).}
+The first CARLA architecture used an ImageNet-pretrained Vision Transformer~\cite{dosovitskiy2020image} (patch size $16\times 16$, hidden dimension $C=384$, spatial features $H=W=14$) with 300-dimensional GloVe embeddings~\cite{pennington2014glove} passed through an LSTM (maximum command length 20). Fusion was \emph{pure} cross-modal attention: with visual tokens $f_t\in\mathbb{R}^{HW\times C}$ and linguistic features $h\in\mathbb{R}^{N\times C}$,
+\begin{equation}
+\begin{split}
+    A &= \sigma(f_t \odot h^\top),\\
+    M &= A \odot h^\top,\\
+    f'_t &= M \ast f_t,
+\end{split}
+\end{equation}
+where $\sigma$ is softmax, $\odot$ is matrix multiplication, and $\ast$ is element-wise modulation. Critically, the navigable-region head predicted \emph{two} classes---intermediate region versus final goal---so that stopping could be decided from the final-class confidence. Live targeting used the largest connected component of the final class when confident, and otherwise the farthest point of the skeletonised trajectory mask as an intermediate waypoint; three consecutive final-class predictions ended the run. No quantitative results were published for this draft. It is the architectural ancestor of the ViT baseline below, which retained the per-frame ViT+LSTM stack but moved toward single-mask prediction with an area-based stop.
 
 \paragraph{ViT baseline (per-frame).}
-The baseline (Figure~\ref{fig:vit_baseline}) uses an ImageNet-pretrained Vision Transformer~\cite{dosovitskiy2020image} with patch size $16\times 16$ and hidden dimension $C=384$, producing spatial features at $H=W=14$. Language is encoded with 300-dimensional GloVe embeddings~\cite{pennington2014glove} (840B tokens) passed through an LSTM (maximum command length 20). Visual and linguistic features are fused by multimodal cross-attention; two ASPP-style heads predict the navigable-region and trajectory masks.
+The evaluated baseline (Figure~\ref{fig:vit_baseline}) keeps the ImageNet ViT and GloVe+LSTM encoders above. Visual and linguistic features are fused by multimodal attention; two ASPP-style heads predict the navigable-region and trajectory masks. Relative to the IROS draft, this variant collapses the two-class navigable head into a single mask and uses the area-threshold stopping rule of Algorithm~\ref{alg:target} rather than final-class confidence.
 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.95\textwidth]{figures/vln/Baseline_Model.png}
-\caption{Per-frame ViT baseline: Vision Transformer visual encoder, LSTM language encoder, multimodal cross-attention, and dual ASPP heads for navigable-region and trajectory masks.}
+\caption{Per-frame ViT baseline: Vision Transformer visual encoder, LSTM language encoder, multimodal attention, and dual ASPP heads for navigable-region and trajectory masks.}
 \label{fig:vit_baseline}
 \end{figure}
 
 \paragraph{Conv3D / X3D model (multi-frame).}
-The multi-frame predecessor (Figure~\ref{fig:conv3d_model}) uses an X3D backbone~\cite{feichtenhofer2020x3d} pretrained on Kinetics-400~\cite{kay2017kinetics}. From $T=40$ input frames it samples $T=4$ frames at stride 10, extracts $C\times T\times H\times W$ features, and applies multimodal self-attention over concatenated visual and linguistic tokens (still GloVe+LSTM). A temporal convolution collapses the time axis before dual ASPP heads. Earlier still, a pure cross-modal attention fusion (without joint self-attention) was used in the first IROS-style draft; the Conv3D model upgraded fusion to joint self-attention over the multimodal sequence.
+The multi-frame predecessor (Figure~\ref{fig:conv3d_model}) uses an X3D backbone~\cite{feichtenhofer2020x3d} pretrained on Kinetics-400~\cite{kay2017kinetics}. From $T=40$ input frames it samples $T=4$ frames at stride 10, extracts $C\times T\times H\times W$ features, and applies multimodal self-attention over concatenated visual and linguistic tokens (still GloVe+LSTM). A temporal convolution collapses the time axis before dual ASPP heads. Relative to the IROS draft, Conv3D upgrades fusion from pure cross-modal attention to \emph{joint} self-attention over the multimodal sequence, and introduces multi-frame visual context.
 
 \begin{figure*}[ht]
 \centering
@@ -284,7 +298,7 @@ The multi-frame predecessor (Figure~\ref{fig:conv3d_model}) uses an X3D backbone
 \end{figure*}
 
 \paragraph{Why CLIP.}
-Moving to CLIP replaces the separate X3D/ViT visual encoder and GloVe+LSTM language stack with a single jointly pretrained image--text embedding space, which simplifies the architecture and improves multimodal alignment on the small CARLA-NAV corpus. The CLIP-MC results above are the published outcome of that migration; the ViT/Conv3D numbers below document the prior art within this project.
+Three considerations motivated the migration from the ViT/Conv3D lineage to CLIP. First, the GloVe+LSTM language stack has no visual grounding: word vectors are trained on text alone, so alignment with image regions must be learned entirely inside the fusion block on CARLA-NAV. CLIP~\cite{radford2021learning} instead provides a jointly pretrained image--text embedding space in which matched pairs already lie close together, giving the fusion module a stronger starting point for grounding (Section~\ref{sec:research_gaps}). Second, CARLA-NAV is small---on the order of 500 training episodes---so freezing (or lightly adapting) a large pretrained multimodal encoder is a better inductive bias than training fusion from scratch on unimodal GloVe features. Third, CLIP collapses the architecture: one dual encoder replaces the separate X3D/ViT visual backbone and LSTM language stack, simplifying training and ensuring that both modalities live in the same feature dimension ($C_v=C_l=512$). Empirically, CLIP-MC is the published outcome of that migration (Tables~\ref{table:task_completion}--\ref{table:frame_ablation}). The ViT/Conv3D numbers below document the prior art within this project; they use a different evaluation pool and metric suite, so we make \emph{no} cross-family numeric comparison.
 
 Table~\ref{table:conv3d_vit} compares Conv3D and ViT on Fr\'{e}chet Distance, FDE, ADE, and ADE-Match (mean / median / STD; metres). Conv3D is consistently better. Critically, the standard deviation often exceeds the mean (e.g., Conv3D Fr\'{e}chet mean $17.84$ with STD $21.49$; median $9.10$), and ViT is even more heavy-tailed (mean $43.95$, STD $60.56$, median $12.19$). Path-metric means are therefore dominated by a minority of catastrophic episodes. Two further observations support the construct-validity critique in Section~\ref{sec:metric_validity}: (i)~Conv3D Fr\'{e}chet and FDE nearly coincide (means $17.84$ vs.\ $17.83$; identical medians $9.10$), so the Fr\'{e}chet supremum is attained at the endpoint---the modal failure is right-path/wrong-endpoint, which ADE ($10.32$) dilutes and ADE-Match ($4.73$) hides; (ii)~over the same episodes, FDE median $9.10\,\mathrm{m}$ and ADE-Match median $1.26\,\mathrm{m}$ cannot both be faithful summaries of median quality, underscoring internal inconsistency of the displacement suite.
 

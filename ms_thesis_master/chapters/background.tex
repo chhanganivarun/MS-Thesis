@@ -109,7 +109,7 @@ Larger generative models such as GPT-4~\cite{openai2023gpt4} and multi-modal arc
 
 In language-guided navigation, visual--language embeddings let a system relate what it sees to what it is told to do~\cite{Chen2019TOUCHDOWN}. Dense-prediction adaptations of CLIP are especially relevant to our mask outputs: DenseCLIP converts image--text matching into pixel--text matching~\cite{Rao_Zhao_Chen_Tang_Zhu_Huang_Zhou_Lu_2022}, and CLIPSeg shows that frozen CLIP features can be decoded into referring segmentations from text prompts~\cite{luddecke2022clipseg}. Both lines of work support treating VLN as dense grounding rather than as action classification.
 
-The practical implication for Chapters~\ref{ch:dataset} and~\ref{ch:vln} is architectural: we treat VLN as grounding a command into a navigable region using CLIP features, then hand that region to a planner, rather than translating language directly into a discrete action.
+The practical implication for Chapters~\ref{ch:dataset} and~\ref{ch:vln} is architectural: we treat VLN as grounding a command into a navigable region using CLIP features, then hand that region to a planner, rather than translating language directly into a discrete action. Chapter~\ref{ch:vln} further explains why we migrated from earlier GloVe+LSTM and X3D/ViT stacks to CLIP as the multimodal backbone.
 
 \section{Language-Guided Navigation}
 
@@ -201,11 +201,11 @@ CARLA language work such as Talk2Nav-style waypoint selection~\cite{sriram2019ta
 
 The survey above leaves three concrete gaps, which map onto the research problems stated in Chapter~\ref{ch:intro}:
 
-\begin{enumerate}
-    \item[\textbf{Gap A $\rightarrow$ Problem A}] \textit{Deferred and partially observable goals.} Static grounding (RNR, Talk2Car) assumes the referent is in the current frame. Outdoor commands routinely refer to regions that are occluded or not yet visible. \textbf{Need:} intermediate navigable-region prediction over time.
-    \item[\textbf{Gap B $\rightarrow$ Problem B}] \textit{Action-space mismatch.} Nav-graph and Street View agents use discrete actions whose reachable set cannot express fine outdoor manoeuvres. \textbf{Need:} continuous control via grounded regions passed to a local planner.
-    \item[\textbf{Gap C $\rightarrow$ Problem C}] \textit{Missing temporal and progress context for live evaluation.} Offline frame scoring does not measure episode completion under dynamic traffic; single-image models lack multi-frame and trajectory context for multi-step commands. \textbf{Need:} multi-frame features, historical trajectory context, and live CARLA evaluation.
-\end{enumerate}
+\begin{description}[style=nextline, leftmargin=1.5em, font=\normalfont\bfseries]
+    \item[Gap A $\rightarrow$ Problem A] \textit{Deferred and partially observable goals.} Static grounding (RNR, Talk2Car) assumes the referent is in the current frame. Outdoor commands routinely refer to regions that are occluded or not yet visible. \textbf{Need:} intermediate navigable-region prediction over time.
+    \item[Gap B $\rightarrow$ Problem B] \textit{Action-space mismatch.} Nav-graph and Street View agents use discrete actions whose reachable set cannot express fine outdoor manoeuvres. \textbf{Need:} continuous control via grounded regions passed to a local planner.
+    \item[Gap C $\rightarrow$ Problem C] \textit{Missing temporal and progress context for live evaluation.} Offline frame scoring does not measure episode completion under dynamic traffic; single-image models lack multi-frame and trajectory context for multi-step commands. \textbf{Need:} multi-frame features, historical trajectory context, and live CARLA evaluation.
+\end{description}
 
 Chapters~\ref{ch:dataset} and~\ref{ch:vln} address these gaps with CARLA-NAV and a grounding-then-navigate network. Dense CLIP-based prediction~\cite{Rao_Zhao_Chen_Tang_Zhu_Huang_Zhou_Lu_2022,luddecke2022clipseg} supplies the representation; DUET-style coarse/fine reasoning~\cite{chen2022think} and language-aligned recovery ideas~\cite{Raychaudhuri2021Language} motivate keeping explicit progress context (our trajectory map), adapted here to outdoor driving rather than indoor graphs.
 
