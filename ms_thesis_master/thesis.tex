@@ -1,0 +1,151 @@
+%  $Description: Thesis
+%  $Author: Animesh Sinha $
+%  $Date: 11 February 2022  $
+%  $Revision: 1.0 $
+
+\documentclass[11pt]{book}
+\usepackage{style/iiit_thesis}
+
+\usepackage{hyperref}
+\usepackage{times}
+\usepackage{epsfig}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{latexsym}
+\usepackage{graphicx}
+\usepackage{multirow}
+\usepackage{algorithm2e}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{braket}
+\usepackage{float}
+\usepackage{newfloat}
+\usepackage{listings}
+\usepackage{xtab}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage{color}
+\usepackage{polyglossia}
+
+\usepackage{fontspec}
+\newfontfamily\hindifont{Noto Sans Devanagari}[Script=Devanagari]
+
+%\usepackage[english]{babel} % English as the main language
+%\babelprovide[import]{hindi}
+%\babelprovide[import]{sanskrit}
+%\babelfont[*devanagari]{rm}{Lohit Devanagari}
+%\babelfont[*devanagari]{rm}{BABEL Unicode}
+
+
+
+\long\def\symbolfootnote[#1]#2{\begingroup%
+\def\thefootnote{\fnsymbol{footnote}}\footnote[#1]{#2}\endgroup}
+\renewcommand{\baselinestretch}{1.2}
+\onecolumn
+%--------------------------------------------------------
+
+\begin{document}
+\pagenumbering{roman}
+
+%% TITLE PAGE
+\input{sections/title.tex}
+
+%% COPYRIGHT PAGE
+\newpage
+\thispagestyle{empty}
+\renewcommand{\thesisdedication}{{\large Copyright \copyright~~Varun Chhangani, 2023\\}{\large All Rights Reserved\\}}
+\thesisdedicationpage
+
+%% CERTIFICATE PAGE
+\input{sections/certificate.tex}
+
+%%% DEDICATION PAGE
+\newpage
+\thispagestyle{empty}
+\renewcommand{\thesisdedication}{\large {\hindifont उद्यमेन हि सिध्यन्ति कार्याणि न मनोरथैः। \\ न हि सुप्तस्य सिंहस्य प्रविशन्ति मुखे मृगाः।।}}
+\thesisdedicationpage
+
+\mastersthesis
+\renewcommand{\baselinestretch}{1.5}
+
+% ACKNOWLEDGEMENTS PAGE
+\chapter*{Acknowledgments(TODO)}
+% Hindi: \foreignlanguage{hindi}{हिन्दी}
+% Sanskrit: \foreignlanguage{sanskrit}{संस्कृतम्}
+\label{ch:ack}
+\input{sections/acknowledgements.tex}
+
+%% ABSTRACT PAGE
+\chapter*{Abstract (TODO)}
+\label{ch:abstract}
+\input{sections/abstract.tex}
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+%--------------------------------------------------------
+
+\chapter{Introduction (TODO)}
+\label{ch:intro}
+\input{chapters/thesis_intro.tex}
+
+%--------------------------------------------------------
+
+\chapter{Background}
+\label{ch:background}
+\input{chapters/background.tex}
+
+%--------------------------------------------------------
+
+\chapter{Data Collection for Autonomous Driving}
+\label{ch:dataset}
+\input{chapters/dataset.tex}
+
+%--------------------------------------------------------
+
+\chapter{Vision-and-Language Navigation in Autonomous Driving}
+\label{ch:vln}
+\input{chapters/vln.tex}
+
+%--------------------------------------------------------
+
+\chapter{Saliency for Driving???}
+\label{ch:qleet}
+\input{chapters/vln.tex}
+
+%--------------------------------------------------------
+
+\chapter{Conclusion(TODO)}
+\label{ch:conc}
+\input{sections/conclusion.tex}
+
+%--------------------------------------------------------
+
+%%% Optional appendix
+\appendix
+
+\chapter{Algorithm Details(TODO)}
+\label{ch:appendix-qroute}
+\input{chapters/appendix.tex}
+
+
+%--------------------------------------------------------
+% Recommended 'Related Publication'
+\chapter*{Related Publications(TODO)}
+\label{ch:relatedPubs}
+\input{sections/related_papers.tex}
+
+%--------------------------------------------------------
+
+\bibliographystyle{unsrt}
+\bibliography{
+    bibliography/main,
+    bibliography/qroute,
+    bibliography/qleet,
+    bibliography/rlreview,
+    bibliography/qalgos,
+    bibliography/background
+} 
+
+\end{document}

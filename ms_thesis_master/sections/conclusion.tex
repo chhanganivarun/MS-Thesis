@@ -1,0 +1,24 @@
+The presented dissertation explains that Barrier Lyapunov Function when combined with optimal control strategies like the Model Predictive Controller incorporates safety and improvises the control algorithms stability and trajectory tracking abilities. MPC-BLF and MPC-CBF provide enhanced trajectory tracking for Aerial robots while providing safety guarantees. The proposed constraints are modifiable for various avoidance and bounding tasks, while providing no unnecessary hindrance to the MPC controller cost optimizer. This controller algorithm can also tackle external wind disturbances within a known bound to provide safety guarantees.
+
+In MPC-BLF for an Aerial Manipulator, the BLF-based Model predictive controller with a primary objective of safe operation in the proximity of static objects. Our approach shows how BLF, formulated for barrier avoidance and free space tracking objectives, shows robust behavior for the safe operation of an Aerial Manipulator in the presence of external disturbances. A state-of-the-art MPC-based method is modified using two types of constraints and compared with the proposed method, which shows significant improvement in two cases i.e with and without external disturbances. This is validated in simulation using parameters from a real laboratory scale AM.
+
+In MPC-CBF for maneuvering a UAV inside a tunnel, we present a control framework to handle aerodynamic torques by rotor and wall interactions. These forces are nonlinear and difficult to model, hence we define constraints to tackle these forces through a CBF. The MPC when combined with constraints using Control Barrier Function, can provide safety guarantees when flying inside a tunnel. The controller also reduces the safe hovering distance from the wall by 37\% and incorporates high disturbance tolerance.  It is also shown that flying near the ground and ceiling can reduce the UAV's power consumed (control effort) by approximately 15\%. The algorithm's efficacy provides safety guarantees while travelling inside a tunnel using parameters from a real UAV model. 
+
+In it's entirety, the contributions of this dissertation are suitable for complex environments, making this approach a valuable tool for a variety of applications from search and rescue to manipulation. Overall, the proposed MPC-CBF and MPC-BLF controllers provide an efficient and robust control strategy for various aerial robots to ensure collision free trajectory tracking while handling various unknown external disturbances. 
+
+
+\noindent \section{Future Work}
+
+\noindent Future work will include determining these CBF bounds with the help of vision algorithms and utilizing them for safe tracking without human intervention. This would lead to a pathway for fully autonomous high-level control systems.
+
+Various sensor and calibration errors can be accounted for in the study to make it closer to the real world, which can further be deployed on the Aerial Manipulator and UAV hardware setup. 
+
+Techniques can also be developed for multi-UAV systems using MPC controllers with dynamic obstacle avoidance. 
+
+The proposed controllers will be deployed on actual Aerial manipulator and UAV hardware.
+
+Moreover, the alogirhtm could be made more robust by handling uncertainty in the "Prediction Model".
+
+
+
+

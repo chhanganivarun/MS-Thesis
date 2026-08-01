@@ -1,0 +1,62 @@
+\section{MPC Implementation}
+
+We have provided the implementation of Model Predictive Control Algorithm. 
+
+The implementation of MPC algorithm has the following components:
+
+\begin{itemize}
+    \item System Model
+    \item Cost function
+    \item Prediction Horizon
+    \item Optimization problem solver
+\end{itemize}
+
+\subsection{System Model}
+
+System Model has been explained in \ref{eq16} and \ref{state_space_uav_output} for Aerial Manipulator and UAV respectively.
+
+\subsection{Cost Function}
+
+
+\begin{lstlisting}
+for i in range(n):
+        
+        cost_ee_x_error += (x_man_pred - x_man_des) 
+        @ w1 @ (x_man_pred - x_man_des).T
+        cost_ee_v_error += (v_man_pred) @ w2 @ (v_man_pred).T
+        
+        cost_input += (x_input_i) @ wu @ (x_input_i).T
+        
+        [x_pred,
+        xdot_pred,
+        thetadesired_pred,
+        omega_pred,
+        theta_m_pred,
+        thetadot_m_desired_pred,
+        x_man_pred,
+        v_man_pred] = drone_dyanmics(
+            adesired[i], 
+            yawdesired[i], 
+            thema_m_desired[i],
+            x_pred,
+            xdot_pred,
+            omega_pred,
+            theta_m_pred,
+            thetadot_m_pred,
+        )
+
+    cost_ee_x_error += (x_man_pred - x_man_des) @ ws1 @ (x_man_pred - x_man_des).T
+    cost_ee_v_error += (v_man_pred) @ ws2 @ (v_man_pred).T
+    
+    cost += cost_ee_x_error + cost_ee_v_error + cost_input
+
+\end{lstlisting}
+
+\subsection{Prediction Horizon}
+
+Prediction horizon has been mentioned for all MPC algorithms in the previous chapters.
+
+\subsection{Optimatizer}
+
+The algorithms are implemented on Python 3 on an Intel® Core™ i7-8550U CPU PC running at 1.80
+GHz. We use the ’SLSQP’ method from scipy as the non-linear optimizer for MPC.

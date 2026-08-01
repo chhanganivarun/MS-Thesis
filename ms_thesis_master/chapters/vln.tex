@@ -1,0 +1,163 @@
+TODO: Chapter Info
+
+In this chapter ....
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+
+The advent of autonomous vehicles has revolutionized the transportation industry, promising safer roads, increased efficiency, and reduced human error. However, the development of fully autonomous vehicles that can navigate complex and dynamic environments remains a challenging task. One of the key aspects of this challenge is the integration of vision and language understanding capabilities to facilitate navigation based on natural language commands.
+
+Vision-and-Language Navigation (VLN) is a rapidly evolving research area that seeks to equip autonomous systems with the ability to understand and execute language-based navigation instructions. The goal is to create a system that can interpret a sequence of instructions and successfully navigate to a destination in a given environment. However, most existing VLN methods have been designed for indoor environments or static scenes, limiting their applicability in dynamic outdoor settings typical of autonomous driving scenarios.
+
+Furthermore, traditional VLN methods often pose the navigation task as a node selection problem on a discrete connected graph corresponding to the environment. While this approach has proven effective in certain contexts, it has limitations when applied to autonomous driving. For instance, it may struggle with commands requiring finer maneuvers, such as "park between the two cars," which demand a more continuous action space.
+
+In response to these challenges, our research introduces a novel approach to VLN that is specifically designed for autonomous driving in dynamic outdoor environments. Our approach involves grounding the navigable regions corresponding to a given textual command. At each timestamp, our model predicts a segmentation mask corresponding to the intermediate or the final navigable region. This approach moves towards continuity in action space, provides interpretability through visual feedback, and allows for finer navigation maneuvers.
+
+To support our work, we propose a novel meta-dataset called CARLA-NAV, which allows for efficient training and validation. The dataset comprises pre-recorded training sequences and a live environment for validation and testing. This dataset is designed to capture the complexity and dynamism of outdoor environments, making it a valuable resource for the development and evaluation of VLN methods for autonomous driving.
+
+Our research also introduces a novel multi-task network for navigation region prediction and future trajectory prediction tasks. The prediction for each task is explainable and interpretable in the form of segmentation masks. This feature is particularly important for autonomous driving applications, where interpretability can enhance safety and trust in the system.
+
+In this chapter, we present the details of our proposed approach, the methodology we employed, and the results of our experiments. Our research aims to address the limitations of existing VLN methods and contribute to the development of more robust and versatile autonomous driving systems.
+
+\section{Background and Related Work}
+
+The integration of vision and language understanding for navigation tasks, known as Vision-and-Language Navigation (VLN), has been a topic of significant interest in the field of artificial intelligence. The goal of VLN is to develop systems that can interpret natural language instructions and execute them in a given environment, a capability that has profound implications for autonomous systems, including self-driving vehicles.
+
+The majority of existing VLN methods have been designed for indoor environments or static scenes. These methods typically represent the environment as a discrete connected graph and pose the navigation task as a node selection problem. For instance, the Room-to-Room (R2R) dataset, a benchmark for VLN tasks, is based on this approach. The R2R dataset consists of panoramic images connected in a graph-like structure, with nodes representing locations and edges representing possible paths between locations.
+
+While these methods have proven effective in certain contexts, they face limitations when applied to dynamic outdoor environments typical of autonomous driving scenarios. For one, these methods often struggle with commands requiring finer maneuvers, such as "park between the two cars," which demand a more continuous action space. Additionally, these methods often fail to handle scenarios where the region to be grounded is not currently visible, is occluded, or goes out of frame. These limitations restrict the applicability of these methods for VLN tasks in autonomous driving.
+
+Recent research has sought to address these limitations by proposing new approaches to VLN. For instance, the Refering Navigable Regions (RNR) approach was designed for static scenes and makes use of visual grounding directly for the navigation task. However, the RNR approach is limited in its ability to handle dynamically changing environments where the scene can change drastically during navigation.
+
+Our research builds upon these existing methods and introduces a novel approach to VLN that is designed specifically for dynamic outdoor environments. We propose a method that grounds the navigable regions corresponding to a given textual command, moving towards continuity in action space and allowing for finer navigation maneuvers. This approach contrasts with existing efforts in VLN, which pose this task as a node selection problem, given a discrete connected graph corresponding to the environment.
+
+To support our work, we propose a novel meta-dataset called CARLA-NAV, which allows for efficient training and validation. The dataset comprises pre-recorded training sequences and a live environment for validation and testing. This dataset is designed to capture the complexity and dynamism of outdoor environments, making it a valuable resource for the development and evaluation of VLN methods for autonomous driving.
+
+Our approach also introduces a novel multi-task network for navigation region prediction and future trajectory prediction tasks. The prediction for each task is explainable and interpretable in the form of segmentation masks. This feature is particularly important for autonomous driving applications, where interpretability can enhance safety and trust in the system.
+
+In summary, our research aims to extend the VLN problem to the context of autonomous driving in outdoor settings, addressing the limitations of existing methods and contributing to the development of more robust and versatile autonomous driving systems.
+
+\section{Problem Statement}
+
+The task of Vision-and-Language Navigation (VLN) in the context of autonomous driving presents unique challenges that are not adequately addressed by existing methods. Traditional VLN methods, designed primarily for indoor environments or static scenes, often struggle when applied to the dynamic and complex outdoor environments typical of autonomous driving scenarios.
+
+One of the primary limitations of existing methods is their reliance on a discrete connected graph to represent the environment. These methods pose the navigation task as a node selection problem, where each node represents a location and each edge represents a possible path between locations. While this approach has proven effective in certain contexts, it has significant limitations when applied to autonomous driving. For instance, it often struggles with commands requiring finer maneuvers, such as "park between the two cars," which demand a more continuous action space.
+
+Furthermore, these methods often fail to handle scenarios where the region to be grounded is not currently visible, is occluded, or goes out of frame. This limitation restricts the applicability of these methods for VLN tasks in autonomous driving, where the scene can change drastically during navigation. For instance, a vehicle may need to navigate based on a command referring to a location or object that is not immediately visible, such as "turn left at the next intersection." In such cases, the ability to ground intermediate navigable regions when the referred navigable region is not visible becomes crucial.
+
+Our research aims to address these challenges by proposing a novel approach to VLN for autonomous driving. We introduce a method that grounds the navigable regions corresponding to a given textual command, moving towards continuity in action space and allowing for finer navigation maneuvers. This approach contrasts with existing efforts in VLN, which pose this task as a node selection problem, given a discrete connected graph corresponding to the environment.
+
+In summary, the problem we aim to solve is the development of a VLN method that is capable of handling the complexity and dynamism of outdoor environments, can execute finer navigation maneuvers, and can ground intermediate navigable regions when the referred navigable region is not visible.
+
+\section{Proposed Approach}
+
+To address the challenges inherent in Vision-and-Language Navigation (VLN) for autonomous driving, we propose a novel approach that redefines the way navigable regions are grounded in response to a given textual command. Our approach moves away from the traditional node selection problem on a discrete connected graph and instead embraces a more continuous action space that allows for finer navigation maneuvers.
+
+At the core of our approach is the prediction of a segmentation mask every few frames during inference, specifically every 5 frames. This mask corresponds to the intermediate or the final navigable region as dictated by the language command. During training, however, we do train at every frame to ensure the model captures all possible nuances in the environment. By grounding the navigable regions in this way, our model can handle scenarios where the region to be grounded is not currently visible, is occluded, or goes out of frame. This capability is crucial for navigating dynamic outdoor environments where the scene can change drastically during navigation.
+
+To support our proposed approach, we introduce a novel meta-dataset called CARLA-NAV. This dataset comprises pre-recorded training sequences and a live environment for validation and testing. The CARLA-NAV dataset is designed to capture the complexity and dynamism of outdoor environments, making it a valuable resource for the development and evaluation of VLN methods for autonomous driving.
+
+Our approach also introduces a novel multi-task network for navigation region prediction and future trajectory prediction tasks. The network uses a multi-modal contextual feature to predict the segmentation masks corresponding to the navigation and trajectory prediction tasks. Each task has a separate segmentation head, which comprises a sequence of convolution layers with an upsampling operation. The prediction for each task is explainable and interpretable in the form of segmentation masks, enhancing the interpretability of our approach.
+
+In summary, our proposed approach to VLN for autonomous driving involves grounding the navigable regions corresponding to a given textual command at specific frame intervals, introducing a novel meta-dataset for training and validation, and employing a multi-task network for navigation region prediction and future trajectory prediction tasks. This approach is designed to handle the complexity and dynamism of outdoor environments, execute finer navigation maneuvers, and ground intermediate navigable regions when the referred navigable region is not visible.
+
+\section{Methodology}
+
+Our methodology for addressing the challenges of Vision-and-Language Navigation (VLN) in autonomous driving involves several key components: the creation of the CARLA-NAV dataset, the design of a novel multi-task network, and the implementation of a live-navigation process. Each of these components is described in detail below.
+
+\subsection{CARLA-NAV Dataset}
+
+The CARLA-NAV dataset is a novel meta-dataset that we created to support our research. The dataset comprises pre-recorded training sequences and a live environment for validation and testing. The data collection process for the CARLA-NAV dataset involves an observer, a navigator, and a verifier. The observer provides a language command, the navigator navigates the CARLA environment through mouse clicks corresponding to navigable regions, and the verifier verifies the recorded episode for inclusion in the dataset. The mouse clicks are converted into segmentation masks by drawing a rectangle in the top view, centered at the mouse click. The rectangle is then projected in the front-camera view.
+
+\subsection{Multi-task Network}
+
+Our approach introduces a novel multi-task network for navigation region prediction and future trajectory prediction tasks. The network uses a multi-modal contextual feature to predict the segmentation masks corresponding to the navigation and trajectory prediction tasks. Each task has a separate segmentation head, which comprises a sequence of convolution layers with an upsampling operation. The prediction for each task is explainable and interpretable in the form of segmentation masks.
+
+For feature extraction, we use the CLIP backbone. The frames are selected with a stride of 10 and are resized to 224 x 224 resolution. After feature extraction, we obtain per-frame visual features of spatial resolution H = W = 7 and channel dimension Cv = 512. For the historical contextual trajectory, we plot the trajectory from the starting location of the episode to the current timestamp and resize it to a 640 x 480 spatial resolution image.
+
+\subsection{Live-Navigation Process}
+
+In the live-navigation process, we use the segmentation mask corresponding to the navigable region directly for navigation. We take the largest connected component from the predicted mask and use its centroid as the target point for the local planner. We use an area-based threshold to determine if the predicted navigation mask corresponds to the final navigable region or not.
+
+In summary, our methodology involves the creation of a novel meta-dataset, the design of a multi-task network for navigation region prediction and future trajectory prediction tasks, and the implementation of a live-navigation process. This methodology is designed to address the challenges of VLN in autonomous driving and contribute to the development of more robust and versatile autonomous driving systems.
+
+\section{Evaluation Metrics in Vision-and-Language Navigation}
+
+Evaluation metrics play a pivotal role in assessing the performance of models in Vision-and-Language Navigation (VLN) tasks. However, the dynamic and complex nature of these tasks, especially in the context of autonomous driving, poses challenges in developing robust and standardized metrics. In this section, we will discuss the evaluation metrics used in various VLN studies and compare them with the metrics used in our study.
+
+\begin{enumerate}
+    \item \textbf{Task Completion (TC):} This metric, used in the study "Outdoor Vision-and-Language Navigation Needs Object-Level Alignment" (ref: https://dx.doi.org/10.3390/s23136028 ), measures whether the agent is able to successfully navigate to the goal location based on a single language command. This metric is straightforward and directly measures the success of the navigation task. However, it does not take into account the efficiency of the path taken by the agent, which can be crucial in real-world applications such as autonomous driving.
+    
+    \item \textbf{Clustering Methods:} The study "Evaluation of Automatically Generated Video Captions Using Vision and Language Models" (ref: https://dx.doi.org/10.1109/ICIP46576.2022.9897559 )used clustering methods to select a few frames to compute the final score. This approach provides a good correlation with human judgment and can be useful for tasks that involve video captioning. However, it may not be suitable for VLN tasks in autonomous driving, where the agent needs to navigate in a dynamic environment based on a single language command.
+    
+    \item \textbf{Reprojection Error and Computation Time:} The study "The Double Sphere Camera Model" (ref: https://dx.doi.org/10.1109/3DV.2018.00069 ) used these metrics to evaluate the accuracy and computational efficiency of a camera model for vision-based motion estimation and 3D reconstruction. The reprojection error is a measure of the difference between the observed and predicted image points, which can be used to evaluate the accuracy of the camera model. The computation time for projection and unprojection functions and their Jacobians is a measure of the computational efficiency of the model. While these metrics are not directly applicable to VLN tasks, they provide insights into the evaluation of vision-based tasks in the context of autonomous driving.
+    
+    \item \textbf{Dynamic Time Warping (DTW):} Dynamic Time Warping is a method that calculates an optimal match between two given sequences with certain restrictions. The sequences are "warped" non-linearly in the time dimension to determine a measure of their similarity independent of certain non-linear variations in the time dimension. This technique has been used in various fields, including data mining, gesture recognition, and time series analysis(ref: https://dx.doi.org/10.15359/ru.36-1.47 ).
+    
+    \item \textbf{Frechet Distance:} The Fréchet distance is a measure of similarity between curves that takes into account the location and ordering of the points along the curves. It has been widely used in computational geometry, computer graphics, and more recently, in comparing time series data (ref:  https://dx.doi.org/10.1155/2022/5344461 ).
+\end{enumerate}
+
+In our study, we used a combination of the Task Completion metric, Frechet Distance, and Normalized Dynamic Time Warping (nDTW) to evaluate our approach. These metrics were chosen due to their suitability for evaluating VLN tasks in the context of autonomous driving, where the agent needs to navigate in a dynamic environment based on a single language command.
+
+The \textbf{Task Completion} metric directly measures the success of the navigation task, providing a clear indication of whether the agent is able to successfully navigate to the goal location based on the given command.
+
+The \textbf{Frechet Distance and nDTW} provide a more detailed evaluation of the agent's performance by taking into account the similarity between the predicted and ground truth paths. These metrics are particularly useful for evaluating the performance of the agent in real-time, as they can provide immediate feedback on the accuracy of the predicted path.
+
+These metrics provide a comprehensive evaluation of our approach, taking into account both the success of the navigation task and the accuracy of the predicted path. Furthermore, they are suitable for real-time evaluation, which is crucial for autonomous driving applications where the agent needs to respond to dynamic changes in the environment.
+
+However, it's important to note that these metrics are not robust indicators of the average performance on the actual navigation task, as a single deviation can significantly affect the final score. Therefore, while these metrics provide a comprehensive evaluation of our approach, there is a need for the development of more robust and standardized evaluation metrics that can effectively evaluate the performance of VLN tasks in dynamic and complex environments such as autonomous driving.
+
+\section{Experimental Results and Implementation Details}
+Our experimental results provide a comprehensive evaluation of our proposed approach to Vision-and-Language Navigation (VLN) for autonomous driving. We conducted a series of experiments to assess the performance of our approach and compare it with existing methods. The results validate the effectiveness and practicality of our approach.
+
+\subsection{Implementation Details}
+We utilized the CLIP backbone for feature extraction. The frames were selected with a stride of 10 and resized to 224 x 224 resolution. After feature extraction, we obtained per-frame visual features of spatial resolution H = W = 7 and channel dimension Cv = 512. For the historical contextual trajectory, we plotted the trajectory from the starting location of the episode to the current timestamp and resized it to a 640 x 480 spatial resolution image. This was passed as input through convolution + MLP layers to obtain trajectory features with the same resolution as per-frame visual features. For linguistic features, we used the CLIP tokenizer followed by the CLIP language encoder to compute the word-level features corresponding to the linguistic command. The maximum length of the command was set to N = 20 and the channel dimension was Cl = 512. We used a batch size of 32 and our network was trained using the AdamW optimizer. The initial learning rate was set to 1e -4 and polynomial learning rate decay with power of 0.5 was used. For the combo loss, we set $\lambda = 0.3$.
+
+\subsection{Live-Navigation}
+
+In the live-navigation process, we utilized the segmentation mask corresponding to the navigable region directly for navigation. We took the largest connected component from the predicted mask and used its centroid as the target point for the local planner. We used an area-based threshold to determine if the predicted navigation mask corresponds to the final navigable region or not. If the area of the predicted navigation mask was larger than the threshold for five consecutive times, we treated the predicted region as the final goal region corresponding to the linguistic command and stopped the navigation.
+
+\subsection{Experimental Results}
+We compared our proposed approach CLIP-MC against the RNR-based approach proposed in a previous study. We used their proposed approach with CLIP-based backbone, CLIP-S as the baseline for our experimental results. The original RNR approach is limited to using a static scene with linguistic commands for navigation, which fails in a dynamically changing environment where the scene can change drastically when we start the navigation. Additionally, we motivated the benefits of contextual trajectory and multiple frames by presenting two variant baselines, (1) multiple frames without a contextual trajectory CLIP-M and (2) single frame with contextual trajectory CLIP-SC.
+
+We observed that our proposed approach CLIP-MC outperformed all the other variants. Introducing historical contextual trajectory consistently helped improve performance as it increased by 4\% and 16\% in cases of single-frame approaches (CLIP-SC, CLIP-S) and multi-frame approaches (CLIP-MC, CLIP-M), respectively on the validation split. Furthermore, the multi-frame approach CLIP-M gave an improvement of 8\% on both the validation and test splits, respectively, over the single-frame approach CLIP-S. These results indicate that a combination of multiple frames and contextual trajectory are required to effectively tackle the VLN task.
+
+In terms of Frechet Distance and nDTW metrics, our reformulated approach CLIP-MC outperformed all other variants by significant margins. However, it's important to note that these metrics are not robust indicators of the average performance on the actual navigation task. This is because there is no single correct way of driving, and a linguistic command may have multiple correct outputs. For instance, a command such as "park near the blue dustbin" could be interpreted in several valid ways depending on the exact location and orientation of the dustbin, the current traffic conditions, and other dynamic factors. Therefore, even if the predicted trajectory diverges from the ground truth trajectory, it doesn't necessarily mean that the prediction is incorrect. As such, a single deviation can significantly affect the final score, making these metrics less reliable for evaluating the performance of VLN tasks.
+
+\section{Discussion}
+The experimental results of our study demonstrate the effectiveness of our proposed approach, CLIP-MC, for Vision-and-Language Navigation (VLN) in autonomous driving. In this section, we will delve deeper into the key factors contributing to the superior performance of our approach and interpret the results of our experiments.
+\subsection{Benefits of Introducing Historical Contextual Trajectory}
+The introduction of historical contextual trajectory in our approach provides valuable information about the path that the agent has traveled so far. This information is crucial for understanding the current context of the navigation task and making accurate predictions about the future path. By incorporating this historical information, our approach can effectively handle the complexities of dynamic environments and make more informed decisions during navigation. This strategy led to a performance increase of 16\% in the case of multi-frame approaches on the validation split, demonstrating the significant impact of incorporating historical context.
+\subsection{Benefits of Using Multiple Frames}
+The use of multiple frames in our approach allows the agent to capture a broader view of the environment, providing more detailed and comprehensive visual information. This is particularly beneficial in dynamic environments where the scene can change drastically over time. By leveraging multiple frames, our approach can effectively handle these changes and make more accurate predictions. This approach resulted in an improvement of 8\% on both the validation and test splits, respectively, over the single-frame approach, underscoring the importance of using multiple frames.
+\subsection{Advantages of the CLIP Encoder Over the RNR (ResNet) Model}
+Our approach utilizes the CLIP encoder, which offers several advantages over the ResNet model used in the RNR-based approach. The CLIP encoder is designed to understand and align information from both visual and language modalities, making it particularly suitable for VLN tasks. It can effectively handle the complexities of real-world environments and interpret natural language instructions, leading to more accurate navigation decisions. In contrast, the ResNet model is primarily designed for image classification tasks and lacks the ability to align visual and language modalities. This can lead to suboptimal performance in VLN tasks, as the model may struggle to interpret natural language instructions and understand the visual environment.
+
+\subsection{Stopping Criteria and Potential Improvements}
+In our approach, the stopping criteria for navigation is determined by the area of the predicted navigation mask. If the area of the predicted navigation mask is larger than a certain threshold for five consecutive times, we treat the predicted region as the final goal region corresponding to the linguistic command and stop the navigation.
+
+While this approach has proven effective in many scenarios, it may not be optimal in all situations. For instance, in complex environments with multiple potential goal regions, this stopping criterion could lead to premature termination of the navigation.
+
+Our current stopping criterion does indirectly incorporate aspects of proximity and temporal consistency. The larger area of the predicted navigation mask can be seen as a rough measure of proximity, and the requirement for the area to be larger than the threshold for five consecutive frames introduces a form of temporal consistency. However, these are indirect measures and may not always be reliable or sufficient for all navigation tasks.
+
+An improved stopping criterion could incorporate additional factors, such as:
+\begin{enumerate}
+    \item \textbf{Confidence of the prediction:} If the model is highly confident about a certain prediction, it could be a strong indicator that the navigation should stop.
+    \item \textbf{Proximity to the goal region:} The distance to the goal region could also be a useful factor to consider. If the agent is very close to the goal region, it might be reasonable to stop the navigation, even if the area of the predicted navigation mask is not larger than the threshold.
+    \item \textbf{Temporal consistency:} If the predicted navigation mask remains stable over a certain period of time, it could be an indication that the agent has reached the goal region and the navigation should stop.
+    \item \textbf{Semantic understanding of the environment:} Incorporating a deeper understanding of the environment could also improve the stopping criterion. For instance, if the agent is navigating towards a specific object (e.g., a blue dustbin), the presence of that object in the predicted navigation mask could be a strong indicator to stop the navigation.
+\end{enumerate}
+
+In conclusion, our discussion highlights the benefits of introducing historical contextual trajectory and using multiple frames in VLN tasks, as well as the advantages of the CLIP encoder. Our proposed approach, CLIP-MC, effectively leverages these benefits to achieve superior performance in autonomous driving. However, there is still room for improvement, particularly in refining the stopping criteria for navigation. Future research should focus on exploring these and other potential improvements to further advance the field of VLN in autonomous driving.
+\section{Conclusion and Future Work}
+In this study, we presented CLIP-MC, a novel approach for Vision-and-Language Navigation (VLN) in autonomous driving. Our approach leverages the power of the CLIP encoder, multiple frames, and historical contextual trajectory to effectively handle the complexities of dynamic environments and interpret natural language instructions. The experimental results demonstrated the superior performance of our approach over the RNR-based approach and other variants, validating the effectiveness of our design choices.
+However, as with any research, there are areas for further exploration and improvement.
+\subsection*{Refinement of Stopping Criteria}
+One such area is the refinement of the stopping criteria for navigation. While our current approach, which uses the area of the predicted navigation mask, has proven effective in many scenarios, it may not be optimal in all situations. Future work could explore the incorporation of additional factors into the stopping criteria, such as the confidence of the prediction, proximity to the goal region, temporal consistency, and semantic understanding of the environment.
+\subsection*{Development of More Robust Evaluation Metrics}
+Another area for future research is the development of more robust and standardized evaluation metrics for VLN tasks. Our study highlighted the limitations of existing metrics like Frechet Distance and nDTW, and the need for metrics that can better capture the complexities of real-world navigation tasks. Future research could explore the development of new metrics or the adaptation of existing ones to better evaluate the performance of VLN models.
+\subsection*{Exploration of Advanced Encoders}
+A further area of potential research lies in the exploration of more advanced encoders. While the CLIP encoder used in our approach has shown promising results, there is potential to explore encoders that can handle more complex data types, such as GPT+image or GPT+video encoders. These encoders could provide a richer understanding of the environment and improve the performance of VLN tasks. Additionally, future work could investigate encoders that can handle more continuous frames instead of a fixed number of frames, which could provide a more fluid and accurate representation of dynamic environments.
+
+In conclusion, our study contributes to the field of VLN in autonomous driving by proposing a novel approach and highlighting areas for future research. We believe that our findings will inspire further research in this field and contribute to the development of more effective and practical VLN models for autonomous driving.
