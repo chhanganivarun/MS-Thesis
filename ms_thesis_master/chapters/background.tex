@@ -111,8 +111,8 @@ CLIP (Contrastive Language--Image Pretraining)~\cite{radford2021learning} is tra
 \begin{figure}[ht]
     \centering
     \begin{tikzpicture}[
-        node distance=0.9cm and 1.6cm,
-        box/.style={draw, rounded corners, align=center, minimum height=0.85cm, minimum width=2.3cm, font=\small},
+        node distance=0.9cm and 1.0cm,
+        box/.style={draw, rounded corners, align=center, minimum height=0.9cm, minimum width=3.4cm, font=\small},
         arr/.style={-{Stealth}, thick}
     ]
         \node[box] (img) {Image};
@@ -121,7 +121,7 @@ CLIP (Contrastive Language--Image Pretraining)~\cite{radford2021learning} is tra
         \node[box, below=of txt] (txtenc) {Text encoder};
         \node[box, below=of imgenc] (vemb) {Visual embedding};
         \node[box, below=of txtenc] (lemb) {Language embedding};
-        \node[box, below=1.4cm of imgenc, xshift=1.9cm, minimum width=5.2cm] (space) {Shared embedding space\\(contrastive alignment)};
+        \node[box, below=of vemb, xshift=2.2cm, minimum width=7.8cm] (space) {Shared embedding space\\(contrastive alignment)};
         \draw[arr] (img) -- (imgenc);
         \draw[arr] (imgenc) -- (vemb);
         \draw[arr] (txt) -- (txtenc);
