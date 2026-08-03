@@ -88,28 +88,58 @@ Test  & 34  & 4,987  & 7.44 & 1.97 & 34.71 \\ \hline
 
 Commands mainly consist of up to three subcommands, most having two. Subcommands include turning, going straight, stopping, and parking, and reference pedestrians, infrastructure, road elements, other vehicles, and scenery. A manual audit of the command list yields on the order of $10^2$ unique tokens and a few hundred distinct command strings after lowercasing (many near-paraphrases); we do not claim an exact vocabulary size without a released tokenizer dump. Relative to indoor VLN datasets such as R2R~\cite{anderson2018vision}, whose instructions average on the order of 29 words, CARLA-NAV commands are short (6.9--7.4 words). The language task is therefore substantially simpler than long-horizon indoor instruction following; the difficulty instead lies in dynamic outdoor grounding and continuous control. Chapter~\ref{ch:vln} reports stratified displacement metrics for earlier ViT/Conv3D models under the same target, action, and subcommand taxonomies, and specifies a TC-stratified per-maneuver protocol for the CLIP family.
 
-Three distribution figures existed in an earlier draft and must be relocated into \texttt{figures/} once recovered. Until then we leave explicit placeholders:
+Held-out episode commands (validation $n=25$, test $n=34$) have been labeled under those same Chapter~\ref{ch:vln} taxonomies: referred target type, primary action verb, and subcommand count. Tables~\ref{table:heldout_target}--\ref{table:heldout_subcommand} report the counts. These tables describe the held-out splits only. The labeled listing is archived at \texttt{figures/vln/carla\_nav\_val\_test\_commands.csv}.
 
-\begin{figure}[ht]
-\centering
-\thesistodo{Recover the figure showing counts / proportions of commands referring to infrastructure vs.\ road/traffic-light vs.\ automobile (same taxonomy as Table~\ref{table:target_type} in Chapter~\ref{ch:vln}). Asset existed in an earlier draft; relocate into \texttt{figures/}.}
-\caption[TODO: Target-type distribution]{\textbf{TODO:} Target-type distribution of CARLA-NAV commands (infrastructure vs.\ road/traffic-light vs.\ automobile). Needed to show that training covers the same taxonomy used in the stratified evaluation of Chapter~\ref{ch:vln}. Asset existed in an earlier draft; to be relocated into \texttt{figures/}.}
-\label{fig:todo_target_split}
-\end{figure}
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|l|c|c|}
+\hline
+Target type & Val & Test \\ \hline
+infrastructure & 10 & 11 \\ \hline
+road/light & 13 & 20 \\ \hline
+automobile & 2 & 3 \\ \hline
+Total & 25 & 34 \\ \hline
+\end{tabular}
+\end{center}
+\caption[Held-out target-type counts]{Referred target-type counts on the CARLA-NAV held-out splits ($n_{\mathrm{val}}=25$, $n_{\mathrm{test}}=34$), using the same taxonomy as Table~\ref{table:target_type}. Training commands are not yet included.}
+\label{table:heldout_target}
+\end{table}
 
-\begin{figure}[ht]
-\centering
-\thesistodo{Recover the figure showing the distribution over primary action verbs (stop / go / take / turn / change / drive / park). Same taxonomy as Table~\ref{table:action_type} in Chapter~\ref{ch:vln}. Asset existed in an earlier draft; relocate into \texttt{figures/}.}
-\caption[TODO: Action-verb distribution]{\textbf{TODO:} Action-verb distribution of CARLA-NAV commands (stop / go / take / turn / change / drive / park). Needed to show that primary maneuvers are not dominated by a single verb class. Asset existed in an earlier draft; to be relocated into \texttt{figures/}.}
-\label{fig:todo_action_split}
-\end{figure}
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|l|c|c|}
+\hline
+Primary action & Val & Test \\ \hline
+stop & 5 & 6 \\ \hline
+go & 3 & 4 \\ \hline
+take & 4 & 3 \\ \hline
+turn & 4 & 14 \\ \hline
+change & 2 & 1 \\ \hline
+drive & 4 & 3 \\ \hline
+park & 3 & 3 \\ \hline
+Total & 25 & 34 \\ \hline
+\end{tabular}
+\end{center}
+\caption[Held-out action-verb counts]{Primary action-verb counts on the CARLA-NAV held-out splits ($n_{\mathrm{val}}=25$, $n_{\mathrm{test}}=34$), using the same taxonomy as Table~\ref{table:action_type}. Near-synonyms are mapped as $\mathrm{wait}\!\to\!\mathrm{go}$, $\mathrm{halt}\!\to\!\mathrm{stop}$, $\mathrm{shift}\!\to\!\mathrm{change}$. Training commands are not yet included.}
+\label{table:heldout_action}
+\end{table}
 
-\begin{figure}[ht]
-\centering
-\thesistodo{Recover the histogram of subcommands (components) per episode (1 / 2 / 3). Example: ``do this and park near this'' counts as 2. Asset existed in an earlier draft; relocate into \texttt{figures/}.}
-\caption[TODO: Subcommand-count distribution]{\textbf{TODO:} Subcommand-count distribution of CARLA-NAV episodes (1~/~2~/~3). Needed because multi-step commands are the setting in which historical trajectory context matters most. Asset existed in an earlier draft; to be relocated into \texttt{figures/}.}
-\label{fig:todo_subcommand_split}
-\end{figure}
+\begin{table}[ht]
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+\# Subcommands & Val & Test \\ \hline
+1 & 16 & 14 \\ \hline
+2 & 9 & 20 \\ \hline
+3 & 0 & 0 \\ \hline
+Total & 25 & 34 \\ \hline
+\end{tabular}
+\end{center}
+\caption[Held-out subcommand-count]{Subcommand-count distribution on the CARLA-NAV held-out splits ($n_{\mathrm{val}}=25$, $n_{\mathrm{test}}=34$), using the same taxonomy as Table~\ref{table:subcommand}. No three-subcommand episodes appear in these held-out lists. Training commands are not yet included.}
+\label{table:heldout_subcommand}
+\end{table}
+
+\thesistodo{Add the train-split command list and extend Tables~\ref{table:heldout_target}--\ref{table:heldout_subcommand} with a Train column (and full-dataset totals). Held-out val/test counts above are complete.}
 
 \subsection{Maps and Weather}
 

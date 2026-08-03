@@ -1,0 +1,60 @@
+split,command,target,action,n_sub
+val,"Turn left and stop next to the bus stop.",infrastructure,turn,2
+val,"Take a left from the interection.",road/light,take,1
+val,"Drive straight till you see a red coloured board",infrastructure,drive,1
+val,"Park just ahead of the speed signboard",infrastructure,park,1
+val,"Take the next right turn.",road/light,take,1
+val,"Drive straight from the next crossroads.",road/light,drive,1
+val,"change to left lane",road/light,change,1
+val,"Stop near the scooty",automobile,stop,1
+val,"take right and stop near the speed limit sign",infrastructure,take,2
+val,"Turn right and stop near the bus stop.",infrastructure,turn,2
+val,"Shift to the left lane and stop at the intersection.",road/light,change,2
+val,"Stop after crossing the stop signboard",infrastructure,stop,1
+val,"Park near the red signboard",infrastructure,park,1
+val,"Wait at the traffic light then go straight.",road/light,go,2
+val,"Drive straight till the intersection and then turn left",road/light,drive,2
+val,"go straight and take a left",road/light,go,2
+val,"Stop as soon as you encounter a white car",automobile,stop,1
+val,"take a right at the intersection",road/light,take,1
+val,"Stop near the red shelters",infrastructure,stop,1
+val,"Turn left from the intersection",road/light,turn,1
+val,"Drive straight then turn right",road/light,drive,2
+val,"Park near the hut visible on the right",infrastructure,park,1
+val,"Go straight and stop before the traffic light.",road/light,go,2
+val,"stop at the bus stand in front",infrastructure,stop,1
+val,"Turn right from the intersection.",road/light,turn,1
+test,"Stop before the next right turn.",road/light,stop,1
+test,"After crossing the blue car come to a stop",automobile,stop,1
+test,"stop beside the black suv",automobile,stop,1
+test,"Stop near the signboard",infrastructure,stop,1
+test,"Take a left at the traffic light",road/light,take,1
+test,"Turn right from the intersection",road/light,turn,1
+test,"Take a left from the intersection ahead",road/light,take,1
+test,"Drive to the corner and go right",road/light,drive,2
+test,"Drive to the intersection and turn left",road/light,drive,2
+test,"Go straight and stop a few metres ahead of the bus stop",infrastructure,go,2
+test,"Stop in front of the garbage dumpsters.",infrastructure,stop,1
+test,"Go straight and stop next to the grey arch.",infrastructure,go,2
+test,"Change lanes and stop at the junction.",road/light,change,2
+test,"Park on the roadside after you have crossed the bus stop",infrastructure,park,2
+test,"Wait for the signal to turn green and continue straight",road/light,go,2
+test,"Drive towards the bus stop and park after crossing it",infrastructure,drive,2
+test,"take a right turn and stop across the bench on left",infrastructure,take,2
+test,"Turn right from the crossroads ahead",road/light,turn,1
+test,"Turn right and park near the sidewalk.",infrastructure,turn,2
+test,"go straight and take a right",road/light,go,2
+test,"park beside the red volkswagen",automobile,park,1
+test,"Turn left from the next crossroads",road/light,turn,1
+test,"Turn right from the crossroads.",road/light,turn,1
+test,"stop by the lamp post",infrastructure,stop,1
+test,"park immediately after the signboard",infrastructure,park,1
+test,"Turn right and stop beside the traffic signal",road/light,turn,2
+test,"Turn left and stop near the traffic signal",road/light,turn,2
+test,"Turn left and stop near the intersection",road/light,turn,2
+test,"Turn left and come to a halt at the intersection",road/light,turn,2
+test,"Turn right and stop before the traffic signal",road/light,turn,2
+test,"Turn right and stop just before the traffic signal",road/light,turn,2
+test,"Turn right and stop near the bus stop",infrastructure,turn,2
+test,"Turn left and stop beside the traffic signal",road/light,turn,2
+test,"Turn left and stop near the traffic signal",road/light,turn,2
